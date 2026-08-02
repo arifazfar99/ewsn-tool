@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EWSN Document Tool
 
-## Getting Started
+A hosted, single-user web app for creating Quotations, Delivery Orders, and Invoices that chain together (Quotation → Delivery Order → Invoice, strict 1:1:1, client + line items carried forward at conversion), each with an on-screen preview and branded PDF export.
 
-First, run the development server:
+Built for a solo proprietor in Malaysia (MYR) to replace a manual Excel-based quoting process. No tax/SST computation anywhere — the business isn't SST-registered. Full product spec: [`project-docs/PRD.md`](./project-docs/PRD.md).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## How it works
+
+1. Log in (single account) and set up the **business profile** once — logo, name, address, contact details, bank details, quotation terms. This appears on every generated document.
+2. Maintain a **Client** list and an **Item** catalog (reusable name/unit/default price for line items).
+3. Create a **Quotation** for a client, add line items, preview it, then **Generate PDF** — this assigns a sequential number (`Q-2026-0001`, editable before issuance to match a pre-existing numbering sequence) and locks the content permanently.
+4. Once a Quotation is **Accepted**, **convert it to a Delivery Order** — client and line items copy forward (not live-linked; editing the DO never changes the source Quotation).
+5. Once a Delivery Order is issued, **convert it to an Invoice** the same way.
+6. Track status per document type (Quotation: Sent/Accepted/Rejected/Expired/Voided; Delivery Order: Delivered/Voided; Invoice: Unpaid/Paid/Voided) and revisit any past document to view or re-download its PDF.
+
+## Tech stack
+
+- **Next.js 16** (App Router, Turbopack, Server Actions)
+- **Prisma 7** with a driver adapter (`@prisma/adapter-pg`) against PostgreSQL
+- **next-auth v5** (Credentials provider, JWT sessions, no DB session adapter)
+- **@react-pdf/renderer** for both the live on-screen preview and the downloaded PDF, from one shared component
+- **Tailwind CSS 4**
+- Hosted on **Vercel**, database on **Neon Postgres** in production (local dev uses Prisma's own embedded `prisma dev` Postgres)
+
+## Project structure
+
+```
+app/(app)/          Authenticated app shell (nav + all pages) — force-dynamic, every page reads live DB state
+  clients/, items/     CRUD for clients and the item catalog
+  quotations/           Quotation form, detail, preview + PDF issuance
+  delivery-orders/      Delivery Order form, detail, preview + PDF issuance
+  invoices/              Invoice form, detail, preview + PDF issuance
+  profile/                Business profile (logo, contact, bank details, terms)
+  dashboard/              Stats + recent documents across all three types
+app/login/           Login page (outside the authenticated shell)
+app/api/auth/        next-auth route handler
+app/api/documents/   PDF download routes (one per doc type)
+lib/auth.ts          next-auth config
+lib/db.ts            Prisma client singleton (driver adapter)
+lib/numbering.ts     Sequential per-doc-type-per-year numbering
+lib/pdf/             Shared react-pdf document component + browser preview wrapper
+components/          Shared UI (status stamps, etc.)
+prisma/              Schema, migrations, seed script
+proxy.ts             Auth guard (redirects unauthenticated requests to /login)
+project-docs/PRD.md  Full product spec
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the local dev Postgres (no Docker or account needed):
+   ```bash
+   npx prisma dev --name default --detach
+   ```
+   If `DATABASE_URL` in `.env` ever stops matching (the port can drift between restarts), run `npx prisma dev ls` to get the current connection string.
+3. Create `.env` with:
+   ```
+   DATABASE_URL="postgres://..."   # from step 2
+   AUTH_SECRET="<a random secret>"
+   SEED_EMAIL="owner@example.com"
+   SEED_PASSWORD="<a password>"
+   ```
+4. Apply migrations and seed the one user account + singleton business profile:
+   ```bash
+   npx prisma migrate dev
+   npx prisma db seed
+   ```
+5. Run the dev server:
+   ```bash
+   npm run dev
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Commands
 
-## Learn More
+```bash
+npm run dev              # start dev server (Turbopack, default port 3000)
+npm run build             # production build
+npm run start               # run a production build
+npm run lint                 # eslint
+npx tsc --noEmit              # type-check without emitting
 
-To learn more about Next.js, take a look at the following resources:
+npx prisma generate             # regenerate the client after any schema.prisma change
+npx prisma migrate dev --name X   # create + apply a migration in dev
+npx prisma studio                  # visual DB browser
+npx prisma db seed                  # (re)run prisma/seed.ts (idempotent)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See [`CLAUDE.md`](./CLAUDE.md) for architecture notes and Next.js 16 / Prisma 7 API gotchas relevant when modifying this codebase.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Hosted on Vercel; `prisma migrate deploy` (not `migrate dev`) applies schema changes to the production Neon database. `DATABASE_URL` and `AUTH_SECRET` are set via `vercel env add`, not committed.

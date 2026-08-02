@@ -21,6 +21,7 @@ type DeliveryOrderFormProps = {
   deliveryOrderId: string;
   clientName: string;
   items: ItemOption[];
+  defaultTitle?: string | null;
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
 };
@@ -41,6 +42,7 @@ export default function DeliveryOrderForm({
   deliveryOrderId,
   clientName,
   items,
+  defaultTitle,
   defaultNotes,
   defaultLineItems,
 }: DeliveryOrderFormProps) {
@@ -90,6 +92,17 @@ export default function DeliveryOrderForm({
           }))
         )}
       />
+
+      <label className="block">
+        <span className="field-label">Title</span>
+        <input
+          type="text"
+          name="title"
+          placeholder="e.g. Website Redesign - Phase 1"
+          defaultValue={defaultTitle ?? ""}
+          className="field-input"
+        />
+      </label>
 
       <label className="block">
         <span className="field-label">Client</span>

@@ -46,6 +46,7 @@ export default async function InvoicePreviewPage({
       email: invoice.client.email,
     },
     lineItems,
+    title: invoice.title,
     notes: invoice.notes,
     footerLabel: "Bank Details",
     footerText: invoice.bankDetailsText,

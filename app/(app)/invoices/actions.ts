@@ -17,6 +17,7 @@ const lineItemSchema = z.object({
 });
 
 const invoiceSchema = z.object({
+  title: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   bankDetailsText: z.string().trim().optional(),
   lineItems: z.array(lineItemSchema).min(1),
@@ -36,6 +37,7 @@ function parseInvoiceForm(formData: FormData) {
   }
 
   return invoiceSchema.safeParse({
+    title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     bankDetailsText: formData.get("bankDetailsText")?.toString() || undefined,
     lineItems: lineItemsJson,
@@ -89,6 +91,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
       data: {
         date: new Date(),
         clientId: deliveryOrder.clientId,
+        title: deliveryOrder.title,
         notes: deliveryOrder.notes,
         sourceDeliveryOrderId: deliveryOrder.id,
         bankDetailsText: profile?.bankDetailsText ?? "",
@@ -131,7 +134,7 @@ export async function saveInvoice(formData: FormData) {
     );
   }
 
-  const { notes, bankDetailsText, lineItems } = parsed.data;
+  const { title, notes, bankDetailsText, lineItems } = parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -162,6 +165,7 @@ export async function saveInvoice(formData: FormData) {
     await tx.invoice.update({
       where: { id },
       data: {
+        title: title || null,
         notes: notes ?? null,
         bankDetailsText: bankDetailsText ?? "",
         lineItems: { create: preparedLines },

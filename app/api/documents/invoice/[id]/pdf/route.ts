@@ -55,6 +55,7 @@ export async function GET(
       email: invoice.client.email,
     },
     lineItems,
+    title: invoice.title,
     notes: invoice.notes,
     footerLabel: "Bank Details",
     footerText: invoice.bankDetailsText,

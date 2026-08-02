@@ -21,6 +21,7 @@ type InvoiceFormProps = {
   invoiceId: string;
   clientName: string;
   items: ItemOption[];
+  defaultTitle?: string | null;
   defaultNotes?: string;
   defaultBankDetailsText?: string;
   defaultLineItems?: LineItemRow[];
@@ -42,6 +43,7 @@ export default function InvoiceForm({
   invoiceId,
   clientName,
   items,
+  defaultTitle,
   defaultNotes,
   defaultBankDetailsText,
   defaultLineItems,
@@ -92,6 +94,17 @@ export default function InvoiceForm({
           }))
         )}
       />
+
+      <label className="block">
+        <span className="field-label">Title</span>
+        <input
+          type="text"
+          name="title"
+          placeholder="e.g. Website Redesign - Phase 1"
+          defaultValue={defaultTitle ?? ""}
+          className="field-input"
+        />
+      </label>
 
       <label className="block">
         <span className="field-label">Client</span>

@@ -55,6 +55,7 @@ export async function GET(
       email: deliveryOrder.client.email,
     },
     lineItems,
+    title: deliveryOrder.title,
     notes: deliveryOrder.notes,
     footerLabel: null,
     footerText: null,

@@ -123,6 +123,7 @@ model DeliveryOrder {
   date              DateTime            @default(now())
   clientId          String
   client            Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  title             String?
   notes             String?
   status            DeliveryOrderStatus @default(DRAFT)
   sourceQuotationId String?             @unique
@@ -155,6 +156,7 @@ model Invoice {
   date                  DateTime       @default(now())
   clientId              String
   client                Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  title                 String?
   notes                 String?
   status                InvoiceStatus  @default(DRAFT)
   sourceDeliveryOrderId String?        @unique

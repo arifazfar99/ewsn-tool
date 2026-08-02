@@ -17,6 +17,7 @@ const lineItemSchema = z.object({
 });
 
 const deliveryOrderSchema = z.object({
+  title: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   lineItems: z.array(lineItemSchema).min(1),
 });
@@ -35,6 +36,7 @@ function parseDeliveryOrderForm(formData: FormData) {
   }
 
   return deliveryOrderSchema.safeParse({
+    title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     lineItems: lineItemsJson,
   });
@@ -77,6 +79,7 @@ export async function convertQuotationToDeliveryOrder(formData: FormData) {
       data: {
         date: new Date(),
         clientId: quotation.clientId,
+        title: quotation.title,
         notes: quotation.notes,
         sourceQuotationId: quotation.id,
         lineItems: {
@@ -118,7 +121,7 @@ export async function saveDeliveryOrder(formData: FormData) {
     );
   }
 
-  const { notes, lineItems } = parsed.data;
+  const { title, notes, lineItems } = parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -149,6 +152,7 @@ export async function saveDeliveryOrder(formData: FormData) {
     await tx.deliveryOrder.update({
       where: { id },
       data: {
+        title: title || null,
         notes: notes ?? null,
         lineItems: { create: preparedLines },
       },

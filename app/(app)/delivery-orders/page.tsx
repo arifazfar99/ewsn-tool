@@ -125,7 +125,14 @@ export default async function DeliveryOrdersPage({
             {deliveryOrders.map((d) => (
               <tr key={d.id}>
                 <td className="num">{d.number ?? "DRAFT"}</td>
-                <td>{d.client.name}</td>
+                <td>
+                  {d.client.name}
+                  {d.title && (
+                    <span className="block text-xs text-ink-soft">
+                      {d.title}
+                    </span>
+                  )}
+                </td>
                 <td>{d.date.toLocaleDateString("en-MY")}</td>
                 <td>
                   <StatusStamp

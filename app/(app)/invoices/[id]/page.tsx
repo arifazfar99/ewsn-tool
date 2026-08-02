@@ -65,6 +65,7 @@ export default async function InvoiceDetailPage({
             unit: it.unit,
             defaultUnitPrice: it.defaultUnitPrice.toNumber(),
           }))}
+          defaultTitle={invoice.title ?? ""}
           defaultNotes={invoice.notes ?? ""}
           defaultBankDetailsText={invoice.bankDetailsText ?? ""}
           defaultLineItems={invoice.lineItems.map((line) => ({
@@ -107,6 +108,10 @@ export default async function InvoiceDetailPage({
         <h1 className="h1-ledger">Invoice {invoice.number}</h1>
         <StatusStamp label={invoice.status} tone={invoiceTone[invoice.status]} />
       </div>
+
+      {invoice.title && (
+        <p className="mb-6 -mt-4 text-sm text-ink-soft">{invoice.title}</p>
+      )}
 
       {error && (
         <p className="stamp stamp-negative mb-4 !block !text-left">{error}</p>

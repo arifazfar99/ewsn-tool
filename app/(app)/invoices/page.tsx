@@ -125,7 +125,14 @@ export default async function InvoicesPage({
             {invoices.map((inv) => (
               <tr key={inv.id}>
                 <td className="num">{inv.number ?? "DRAFT"}</td>
-                <td>{inv.client.name}</td>
+                <td>
+                  {inv.client.name}
+                  {inv.title && (
+                    <span className="block text-xs text-ink-soft">
+                      {inv.title}
+                    </span>
+                  )}
+                </td>
                 <td>{inv.date.toLocaleDateString("en-MY")}</td>
                 <td>
                   <StatusStamp label={inv.status} tone={invoiceTone[inv.status]} />

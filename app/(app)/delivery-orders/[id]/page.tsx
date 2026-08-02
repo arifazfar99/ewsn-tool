@@ -63,6 +63,7 @@ export default async function DeliveryOrderDetailPage({
             unit: it.unit,
             defaultUnitPrice: it.defaultUnitPrice.toNumber(),
           }))}
+          defaultTitle={deliveryOrder.title ?? ""}
           defaultNotes={deliveryOrder.notes ?? ""}
           defaultLineItems={deliveryOrder.lineItems.map((line) => ({
             itemId: line.itemId,
@@ -112,6 +113,10 @@ export default async function DeliveryOrderDetailPage({
           tone={deliveryOrderTone[deliveryOrder.status]}
         />
       </div>
+
+      {deliveryOrder.title && (
+        <p className="mb-6 -mt-4 text-sm text-ink-soft">{deliveryOrder.title}</p>
+      )}
 
       {error && (
         <p className="stamp stamp-negative mb-4 !block !text-left">{error}</p>

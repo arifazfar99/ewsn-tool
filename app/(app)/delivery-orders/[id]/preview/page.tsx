@@ -46,6 +46,7 @@ export default async function DeliveryOrderPreviewPage({
       email: deliveryOrder.client.email,
     },
     lineItems,
+    title: deliveryOrder.title,
     notes: deliveryOrder.notes,
     footerLabel: null,
     footerText: null,

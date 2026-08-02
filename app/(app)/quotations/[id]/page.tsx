@@ -76,6 +76,7 @@ export default async function QuotationDetailPage({
           defaultClientId={quotation.clientId}
           defaultDate={quotation.date.toISOString().slice(0, 10)}
           defaultNumber={defaultNumber}
+          defaultTitle={quotation.title ?? ""}
           defaultNotes={quotation.notes ?? ""}
           defaultLineItems={quotation.lineItems.map((line) => ({
             itemId: line.itemId,
@@ -109,6 +110,10 @@ export default async function QuotationDetailPage({
         <h1 className="h1-ledger">Quotation {quotation.number}</h1>
         <StatusStamp label={quotation.status} tone={quotationTone[quotation.status]} />
       </div>
+
+      {quotation.title && (
+        <p className="mb-6 -mt-4 text-sm text-ink-soft">{quotation.title}</p>
+      )}
 
       {error && (
         <p className="stamp stamp-negative mb-4 !block !text-left">

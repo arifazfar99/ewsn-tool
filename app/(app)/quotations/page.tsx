@@ -131,7 +131,14 @@ export default async function QuotationsPage({
               return (
                 <tr key={q.id}>
                   <td className="num">{q.number ?? "DRAFT"}</td>
-                  <td>{q.client.name}</td>
+                  <td>
+                    {q.client.name}
+                    {q.title && (
+                      <span className="block text-xs text-ink-soft">
+                        {q.title}
+                      </span>
+                    )}
+                  </td>
                   <td>{q.date.toLocaleDateString("en-MY")}</td>
                   <td>
                     <StatusStamp

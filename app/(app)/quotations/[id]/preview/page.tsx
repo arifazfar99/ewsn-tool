@@ -46,6 +46,7 @@ export default async function QuotationPreviewPage({
       email: quotation.client.email,
     },
     lineItems,
+    title: quotation.title,
     notes: quotation.notes,
     footerLabel: "Terms & Conditions",
     footerText: quotation.issuedAt

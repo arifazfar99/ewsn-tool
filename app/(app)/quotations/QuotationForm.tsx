@@ -24,6 +24,7 @@ type QuotationFormProps = {
   defaultClientId?: string;
   defaultDate?: string;
   defaultNumber?: string | null;
+  defaultTitle?: string | null;
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
 };
@@ -47,6 +48,7 @@ export default function QuotationForm({
   defaultClientId,
   defaultDate,
   defaultNumber,
+  defaultTitle,
   defaultNotes,
   defaultLineItems,
 }: QuotationFormProps) {
@@ -96,6 +98,17 @@ export default function QuotationForm({
           }))
         )}
       />
+
+      <label className="block">
+        <span className="field-label">Title</span>
+        <input
+          type="text"
+          name="title"
+          placeholder="e.g. Website Redesign - Phase 1"
+          defaultValue={defaultTitle ?? ""}
+          className="field-input"
+        />
+      </label>
 
       <div className="grid grid-cols-3 gap-5">
         <label className="block">

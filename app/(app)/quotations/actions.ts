@@ -20,6 +20,7 @@ const quotationSchema = z.object({
   clientId: z.string().trim().min(1),
   date: z.string().trim().min(1),
   number: z.string().trim().optional(),
+  title: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   lineItems: z.array(lineItemSchema).min(1),
 });
@@ -45,6 +46,7 @@ function parseQuotationForm(formData: FormData) {
     clientId: formData.get("clientId")?.toString() ?? "",
     date: formData.get("date")?.toString() ?? "",
     number: formData.get("number")?.toString() || undefined,
+    title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     lineItems: lineItemsJson,
   });
@@ -69,7 +71,7 @@ export async function saveQuotation(formData: FormData) {
     );
   }
 
-  const { clientId, date, number, notes, lineItems } = parsed.data;
+  const { clientId, date, number, title, notes, lineItems } = parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -113,6 +115,7 @@ export async function saveQuotation(formData: FormData) {
             date: new Date(date),
             number: number || null,
             year,
+            title: title || null,
             notes: notes ?? null,
             lineItems: { create: preparedLines },
           },
@@ -140,6 +143,7 @@ export async function saveQuotation(formData: FormData) {
           date: new Date(date),
           number: number || null,
           year,
+          title: title || null,
           notes: notes ?? null,
           lineItems: { create: preparedLines },
         },

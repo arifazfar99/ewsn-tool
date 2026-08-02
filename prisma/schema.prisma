@@ -91,6 +91,7 @@ model Quotation {
   date      DateTime        @default(now())
   clientId  String
   client    Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  title     String?
   notes     String?
   status    QuotationStatus @default(DRAFT)
   termsText String?

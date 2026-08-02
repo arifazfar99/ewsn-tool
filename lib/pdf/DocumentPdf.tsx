@@ -24,6 +24,7 @@ export type DocumentPdfProps = {
     unitPrice: number;
     lineTotal: number;
   }[];
+  title?: string | null;
   notes: string | null;
   footerLabel: string | null;
   footerText: string | null;
@@ -122,6 +123,11 @@ const styles = StyleSheet.create({
   notesText: {
     color: "#3f3f46",
   },
+  subjectText: {
+    marginBottom: 20,
+    fontSize: 11,
+    fontWeight: 700,
+  },
   footerLabel: {
     fontSize: 9,
     fontWeight: 700,
@@ -153,6 +159,7 @@ export default function DocumentPdf({
   business,
   client,
   lineItems,
+  title,
   notes,
   footerLabel,
   footerText,
@@ -179,6 +186,8 @@ export default function DocumentPdf({
             <Text style={styles.docMeta}>{formatDate(date)}</Text>
           </View>
         </View>
+
+        {title && <Text style={styles.subjectText}>{title}</Text>}
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Bill To</Text>

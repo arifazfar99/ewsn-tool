@@ -40,10 +40,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/app/generated/prisma
+/generated/prisma
 
 .vercel
 .env*
 
 # Atlas work-plan tracking (local execution notes, not project docs)
 /Project Resources/
+
+# AI tool skill installs — materialized from skills-lock.json, not source
+/.claude/skills/
+/.agents/skills/
+/.windsurf/skills/
+
+# personal, machine-specific Claude Code settings (like .env.local)
+/.claude/settings.local.json

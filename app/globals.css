@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Design system: "ledger book". Pale ledger-paper background, ink-green
+ * type, and document status rendered as ink-stamp marks (the real device
+ * Malaysian business owners still use to mark PAID/VOID on paper). See
+ * CLAUDE.md-adjacent design notes: this is a deliberate single light theme,
+ * not a dark-mode-aware one — a "paper" surface has no dark counterpart.
+ */
+@theme {
+  --color-paper: #f2f4ec;
+  --color-panel: #fbfbf6;
+  --color-paper-line: #c7d2bc;
+  --color-ink: #202b22;
+  --color-ink-soft: #5c6b57;
+  --color-stamp-navy: #2b4a63;
+  --color-stamp-red: #b23a2b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-plex-serif);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+@layer components {
+  .h1-ledger {
+    font-family: var(--font-display);
+    @apply text-[1.65rem] font-semibold tracking-tight text-ink;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-ink-soft;
+  }
+
+  .panel {
+    @apply rounded-sm border border-paper-line bg-panel;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm bg-stamp-navy px-4 py-2 text-sm font-medium text-panel transition-colors hover:bg-[#20374a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stamp-navy;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm border border-paper-line bg-panel px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stamp-navy;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm border border-stamp-red/50 bg-panel px-4 py-2 text-sm font-medium text-stamp-red transition-colors hover:bg-stamp-red/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stamp-red;
+  }
+
+  .link-ink {
+    @apply text-sm font-medium text-stamp-navy underline decoration-stamp-navy/30 underline-offset-4 hover:decoration-stamp-navy;
+  }
+
+  .field-label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-ink-soft;
+  }
+
+  .field-input {
+    @apply w-full rounded-sm border border-paper-line bg-panel px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-soft/60 focus:border-stamp-navy focus:outline-none focus:ring-1 focus:ring-stamp-navy;
+  }
+
+  .table-ledger {
+    @apply w-full border-collapse text-sm;
+  }
+  .table-ledger thead tr {
+    @apply border-b border-paper-line text-left text-ink-soft;
+  }
+  .table-ledger th {
+    @apply py-2 pr-4 text-xs font-semibold uppercase tracking-wide;
+  }
+  .table-ledger tbody tr {
+    @apply border-b border-paper-line/60;
+  }
+  .table-ledger td {
+    @apply py-2.5 pr-4 align-middle text-ink;
+  }
+  .table-ledger td.num {
+    font-family: var(--font-mono);
+  }
+
+  .stamp {
+    font-family: var(--font-mono);
+    @apply inline-block whitespace-nowrap rounded-[2px] border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest;
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+  .stamp-positive {
+    @apply border-stamp-navy bg-stamp-navy/[0.06] text-stamp-navy;
+  }
+  .stamp-negative {
+    @apply border-stamp-red bg-stamp-red/[0.06] text-stamp-red;
+  }
+  .stamp-pending {
+    @apply border-ink/40 bg-ink/[0.03] text-ink-soft;
+  }
 }

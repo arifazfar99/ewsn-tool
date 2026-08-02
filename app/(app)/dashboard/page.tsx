@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { StatusStamp } from "@/components/StatusStamp";
+import { quotationTone, deliveryOrderTone, invoiceTone } from "@/lib/statusTone";
 
 export default async function DashboardPage() {
   const [
@@ -47,6 +49,9 @@ export default async function DashboardPage() {
       type: "Quotation",
       number: q.number,
       client: q.client.name,
+      title: q.title,
+      status: q.status,
+      tone: quotationTone[q.status],
       createdAt: q.createdAt,
       href: `/quotations/${q.id}`,
     })),
@@ -54,6 +59,9 @@ export default async function DashboardPage() {
       type: "Delivery Order",
       number: d.number,
       client: d.client.name,
+      title: null as string | null,
+      status: d.status,
+      tone: deliveryOrderTone[d.status],
       createdAt: d.createdAt,
       href: `/delivery-orders/${d.id}`,
     })),
@@ -61,6 +69,9 @@ export default async function DashboardPage() {
       type: "Invoice",
       number: inv.number,
       client: inv.client.name,
+      title: null as string | null,
+      status: inv.status,
+      tone: invoiceTone[inv.status],
       createdAt: inv.createdAt,
       href: `/invoices/${inv.id}`,
     })),
@@ -102,6 +113,8 @@ export default async function DashboardPage() {
               <th>Type</th>
               <th>Number</th>
               <th>Client</th>
+              <th>Title</th>
+              <th>Status</th>
               <th />
             </tr>
           </thead>
@@ -111,6 +124,10 @@ export default async function DashboardPage() {
                 <td className="text-ink-soft">{doc.type}</td>
                 <td className="num">{doc.number ?? "DRAFT"}</td>
                 <td className="text-ink-soft">{doc.client}</td>
+                <td className="text-ink-soft">{doc.title ?? "—"}</td>
+                <td>
+                  <StatusStamp label={doc.status} tone={doc.tone} />
+                </td>
                 <td className="text-right">
                   <Link href={doc.href} className="link-ink">
                     View

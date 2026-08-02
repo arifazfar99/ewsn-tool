@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/app/generated/prisma
+
+.vercel
+.env*
+
+# Atlas work-plan tracking (local execution notes, not project docs)
+/Project Resources/

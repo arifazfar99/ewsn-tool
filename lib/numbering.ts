@@ -26,6 +26,17 @@ export async function previewNextDocumentNumber(
   return `${PREFIX[docType]}-${year}-${String(nextNumber).padStart(4, "0")}`;
 }
 
+// Extracts the year out of a manually-typed number (e.g. "QT-2026-0019" ->
+// 2026), for stamping the same year onto the document's own `year` column.
+// Returns null if the number is blank or doesn't match the expected shape.
+export function parseYearFromNumber(
+  number: string | null | undefined
+): number | null {
+  if (!number) return null;
+  const match = number.match(NUMBER_SUFFIX_PATTERN);
+  return match ? Number.parseInt(match[1], 10) : null;
+}
+
 // Advances DocumentCounter to match a manually-entered number, so future
 // auto-suggestions continue from it instead of colliding with it. No-op if
 // the number doesn't end in "-YYYY-NNNN", and never moves the counter

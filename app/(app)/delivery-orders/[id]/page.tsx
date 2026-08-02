@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveDeliveryOrder, setDeliveryOrderStatus } from "../actions";
 import { convertDeliveryOrderToInvoice } from "../../invoices/actions";
 import DeliveryOrderForm from "../DeliveryOrderForm";
@@ -38,10 +39,15 @@ export default async function DeliveryOrderDetailPage({
   if (!deliveryOrder) notFound();
 
   if (!deliveryOrder.issuedAt) {
-    const items = await prisma.item.findMany({
-      where: { archived: false },
-      orderBy: { name: "asc" },
-    });
+    const [items, defaultNumber] = await Promise.all([
+      prisma.item.findMany({
+        where: { archived: false },
+        orderBy: { name: "asc" },
+      }),
+      deliveryOrder.number
+        ? Promise.resolve(deliveryOrder.number)
+        : previewNextDocumentNumber("DELIVERY_ORDER"),
+    ]);
 
     return (
       <div>
@@ -64,6 +70,7 @@ export default async function DeliveryOrderDetailPage({
             defaultUnitPrice: it.defaultUnitPrice.toNumber(),
           }))}
           defaultTitle={deliveryOrder.title ?? ""}
+          defaultNumber={defaultNumber}
           defaultNotes={deliveryOrder.notes ?? ""}
           defaultLineItems={deliveryOrder.lineItems.map((line) => ({
             itemId: line.itemId,

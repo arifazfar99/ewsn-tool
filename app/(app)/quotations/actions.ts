@@ -6,7 +6,11 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma, QuotationStatus } from "@/generated/prisma/client";
-import { nextDocumentNumber, syncCounterFromNumber } from "@/lib/numbering";
+import {
+  nextDocumentNumber,
+  parseYearFromNumber,
+  syncCounterFromNumber,
+} from "@/lib/numbering";
 
 // itemId is required: QuotationLineItem.itemId is a non-null FK to Item.
 const lineItemSchema = z.object({
@@ -24,10 +28,6 @@ const quotationSchema = z.object({
   notes: z.string().trim().optional(),
   lineItems: z.array(lineItemSchema).min(1),
 });
-
-// Matches the same trailing "-YYYY-NNNN" shape used in lib/numbering.ts, so
-// a manually-typed number also determines which year bucket it belongs to.
-const NUMBER_SUFFIX_PATTERN = /-(\d{4})-(\d+)$/;
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
@@ -80,8 +80,7 @@ export async function saveQuotation(formData: FormData) {
     lineTotal: round2(line.quantity * line.unitPrice),
     sortOrder: i,
   }));
-  const numberMatch = number?.match(NUMBER_SUFFIX_PATTERN);
-  const year = numberMatch ? Number.parseInt(numberMatch[1], 10) : null;
+  const year = parseYearFromNumber(number);
 
   const duplicateNumberError = () =>
     (id ? `/quotations/${id}` : "/quotations/new") +

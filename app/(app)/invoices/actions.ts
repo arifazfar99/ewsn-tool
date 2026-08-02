@@ -5,8 +5,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { DeliveryOrderStatus, InvoiceStatus } from "@/generated/prisma/client";
-import { nextDocumentNumber } from "@/lib/numbering";
+import { DeliveryOrderStatus, InvoiceStatus, Prisma } from "@/generated/prisma/client";
+import {
+  nextDocumentNumber,
+  parseYearFromNumber,
+  syncCounterFromNumber,
+} from "@/lib/numbering";
 
 // itemId is required: InvoiceLineItem.itemId is a non-null FK to Item.
 const lineItemSchema = z.object({
@@ -17,6 +21,7 @@ const lineItemSchema = z.object({
 });
 
 const invoiceSchema = z.object({
+  number: z.string().trim().optional(),
   title: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   bankDetailsText: z.string().trim().optional(),
@@ -37,6 +42,7 @@ function parseInvoiceForm(formData: FormData) {
   }
 
   return invoiceSchema.safeParse({
+    number: formData.get("number")?.toString() || undefined,
     title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     bankDetailsText: formData.get("bankDetailsText")?.toString() || undefined,
@@ -134,7 +140,7 @@ export async function saveInvoice(formData: FormData) {
     );
   }
 
-  const { title, notes, bankDetailsText, lineItems } = parsed.data;
+  const { number, title, notes, bankDetailsText, lineItems } = parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -143,6 +149,7 @@ export async function saveInvoice(formData: FormData) {
     lineTotal: round2(line.quantity * line.unitPrice),
     sortOrder: i,
   }));
+  const year = parseYearFromNumber(number);
 
   const existing = await prisma.invoice.findUnique({
     where: { id },
@@ -160,18 +167,31 @@ export async function saveInvoice(formData: FormData) {
     );
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
-    await tx.invoice.update({
-      where: { id },
-      data: {
-        title: title || null,
-        notes: notes ?? null,
-        bankDetailsText: bankDetailsText ?? "",
-        lineItems: { create: preparedLines },
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+      await tx.invoice.update({
+        where: { id },
+        data: {
+          number: number || null,
+          year,
+          title: title || null,
+          notes: notes ?? null,
+          bankDetailsText: bankDetailsText ?? "",
+          lineItems: { create: preparedLines },
+        },
+      });
+      await syncCounterFromNumber(tx, "INVOICE", number);
     });
-  });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      redirect(
+        `/invoices/${id}?error=` +
+          encodeURIComponent("That invoice number is already in use.")
+      );
+    }
+    throw e;
+  }
 
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
@@ -213,7 +233,12 @@ export async function issueInvoice(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    const { number, year } = await nextDocumentNumber(tx, "INVOICE");
+    // A number typed in on the draft (already synced to the counter via
+    // syncCounterFromNumber in saveInvoice) is kept as-is; only fall back to
+    // auto-generating one if the draft was left blank.
+    const { number, year } = invoice.number
+      ? { number: invoice.number, year: invoice.year ?? new Date().getFullYear() }
+      : await nextDocumentNumber(tx, "INVOICE");
     await tx.invoice.update({
       where: { id },
       data: { number, year, issuedAt: new Date(), status: InvoiceStatus.UNPAID },

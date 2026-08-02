@@ -5,8 +5,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { QuotationStatus, DeliveryOrderStatus } from "@/generated/prisma/client";
-import { nextDocumentNumber } from "@/lib/numbering";
+import { Prisma, QuotationStatus, DeliveryOrderStatus } from "@/generated/prisma/client";
+import {
+  nextDocumentNumber,
+  parseYearFromNumber,
+  syncCounterFromNumber,
+} from "@/lib/numbering";
 
 // itemId is required: DeliveryOrderLineItem.itemId is a non-null FK to Item.
 const lineItemSchema = z.object({
@@ -17,6 +21,7 @@ const lineItemSchema = z.object({
 });
 
 const deliveryOrderSchema = z.object({
+  number: z.string().trim().optional(),
   title: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   lineItems: z.array(lineItemSchema).min(1),
@@ -36,6 +41,7 @@ function parseDeliveryOrderForm(formData: FormData) {
   }
 
   return deliveryOrderSchema.safeParse({
+    number: formData.get("number")?.toString() || undefined,
     title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     lineItems: lineItemsJson,
@@ -121,7 +127,7 @@ export async function saveDeliveryOrder(formData: FormData) {
     );
   }
 
-  const { title, notes, lineItems } = parsed.data;
+  const { number, title, notes, lineItems } = parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -130,6 +136,7 @@ export async function saveDeliveryOrder(formData: FormData) {
     lineTotal: round2(line.quantity * line.unitPrice),
     sortOrder: i,
   }));
+  const year = parseYearFromNumber(number);
 
   const existing = await prisma.deliveryOrder.findUnique({
     where: { id },
@@ -147,17 +154,30 @@ export async function saveDeliveryOrder(formData: FormData) {
     );
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.deliveryOrderLineItem.deleteMany({ where: { deliveryOrderId: id } });
-    await tx.deliveryOrder.update({
-      where: { id },
-      data: {
-        title: title || null,
-        notes: notes ?? null,
-        lineItems: { create: preparedLines },
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.deliveryOrderLineItem.deleteMany({ where: { deliveryOrderId: id } });
+      await tx.deliveryOrder.update({
+        where: { id },
+        data: {
+          number: number || null,
+          year,
+          title: title || null,
+          notes: notes ?? null,
+          lineItems: { create: preparedLines },
+        },
+      });
+      await syncCounterFromNumber(tx, "DELIVERY_ORDER", number);
     });
-  });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      redirect(
+        `/delivery-orders/${id}?error=` +
+          encodeURIComponent("That delivery order number is already in use.")
+      );
+    }
+    throw e;
+  }
 
   revalidatePath("/delivery-orders");
   revalidatePath(`/delivery-orders/${id}`);
@@ -196,7 +216,12 @@ export async function issueDeliveryOrder(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    const { number, year } = await nextDocumentNumber(tx, "DELIVERY_ORDER");
+    // A number typed in on the draft (already synced to the counter via
+    // syncCounterFromNumber in saveDeliveryOrder) is kept as-is; only fall
+    // back to auto-generating one if the draft was left blank.
+    const { number, year } = deliveryOrder.number
+      ? { number: deliveryOrder.number, year: deliveryOrder.year ?? new Date().getFullYear() }
+      : await nextDocumentNumber(tx, "DELIVERY_ORDER");
     await tx.deliveryOrder.update({
       where: { id },
       data: { number, year, issuedAt: new Date() },

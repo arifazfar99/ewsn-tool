@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveInvoice, setInvoiceStatus } from "../actions";
 import InvoiceForm from "../InvoiceForm";
 import { StatusStamp } from "@/components/StatusStamp";
@@ -40,10 +41,15 @@ export default async function InvoiceDetailPage({
   if (!invoice) notFound();
 
   if (!invoice.issuedAt) {
-    const items = await prisma.item.findMany({
-      where: { archived: false },
-      orderBy: { name: "asc" },
-    });
+    const [items, defaultNumber] = await Promise.all([
+      prisma.item.findMany({
+        where: { archived: false },
+        orderBy: { name: "asc" },
+      }),
+      invoice.number
+        ? Promise.resolve(invoice.number)
+        : previewNextDocumentNumber("INVOICE"),
+    ]);
 
     return (
       <div>
@@ -66,6 +72,7 @@ export default async function InvoiceDetailPage({
             defaultUnitPrice: it.defaultUnitPrice.toNumber(),
           }))}
           defaultTitle={invoice.title ?? ""}
+          defaultNumber={defaultNumber}
           defaultNotes={invoice.notes ?? ""}
           defaultBankDetailsText={invoice.bankDetailsText ?? ""}
           defaultLineItems={invoice.lineItems.map((line) => ({

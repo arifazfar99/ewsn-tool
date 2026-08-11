@@ -18,6 +18,7 @@ model BusinessProfile {
   id              String   @id @default("singleton")
   logoDataUrl     String?
   name            String   @default("")
+  ssmNumber       String   @default("")
   address         String   @default("")
   phone           String   @default("")
   email           String   @default("")

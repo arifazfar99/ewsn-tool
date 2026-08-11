@@ -6,6 +6,7 @@ import { updateProfile, type ProfileFormState } from "./actions";
 type Profile = {
   logoDataUrl: string | null;
   name: string;
+  ssmNumber: string;
   address: string;
   phone: string;
   email: string;
@@ -67,6 +68,16 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
           type="text"
           name="name"
           defaultValue={profile.name}
+          className="field-input"
+        />
+      </label>
+
+      <label className="block">
+        <span className="field-label">SSM Number</span>
+        <input
+          type="text"
+          name="ssmNumber"
+          defaultValue={profile.ssmNumber}
           className="field-input"
         />
       </label>

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 const profileSchema = z.object({
   logoDataUrl: z.string().optional(),
   name: z.string(),
+  ssmNumber: z.string(),
   address: z.string(),
   phone: z.string(),
   email: z.string(),
@@ -29,6 +30,7 @@ export async function updateProfile(
   const parsed = profileSchema.safeParse({
     logoDataUrl: formData.get("logoDataUrl")?.toString() || undefined,
     name: formData.get("name")?.toString() ?? "",
+    ssmNumber: formData.get("ssmNumber")?.toString() ?? "",
     address: formData.get("address")?.toString() ?? "",
     phone: formData.get("phone")?.toString() ?? "",
     email: formData.get("email")?.toString() ?? "",

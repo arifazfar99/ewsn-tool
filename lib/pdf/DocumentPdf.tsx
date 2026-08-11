@@ -6,6 +6,7 @@ export type DocumentPdfProps = {
   date: Date;
   business: {
     name: string;
+    ssmNumber: string;
     address: string;
     phone: string;
     email: string;
@@ -34,7 +35,7 @@ export type DocumentPdfProps = {
 const styles = StyleSheet.create({
   page: {
     padding: 36,
-    fontSize: 10,
+    fontSize: 12,
     color: "#18181b",
   },
   headerRow: {
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     objectFit: "contain",
   },
   businessName: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 700,
     marginBottom: 2,
   },
@@ -69,7 +70,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: 700,
     color: "#71717a",
     marginBottom: 4,
@@ -125,11 +126,11 @@ const styles = StyleSheet.create({
   },
   subjectText: {
     marginBottom: 20,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
   },
   footerLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: 700,
     color: "#71717a",
     marginBottom: 4,
@@ -176,6 +177,9 @@ export default function DocumentPdf({
               <Image style={styles.logo} src={business.logoDataUrl} />
             )}
             <Text style={styles.businessName}>{business.name}</Text>
+            {business.ssmNumber && (
+              <Text style={styles.muted}>SSM No: {business.ssmNumber}</Text>
+            )}
             <Text style={styles.muted}>{business.address}</Text>
             <Text style={styles.muted}>{business.phone}</Text>
             <Text style={styles.muted}>{business.email}</Text>

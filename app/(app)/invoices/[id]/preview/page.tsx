@@ -33,6 +33,7 @@ export default async function InvoicePreviewPage({
     date: invoice.date,
     business: {
       name: profile?.name ?? "",
+      ssmNumber: profile?.ssmNumber ?? "",
       address: profile?.address ?? "",
       phone: profile?.phone ?? "",
       email: profile?.email ?? "",

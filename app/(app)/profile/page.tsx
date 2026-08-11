@@ -7,6 +7,7 @@ export default async function ProfilePage() {
   })) ?? {
     logoDataUrl: null,
     name: "",
+    ssmNumber: "",
     address: "",
     phone: "",
     email: "",
@@ -21,6 +22,7 @@ export default async function ProfilePage() {
         profile={{
           logoDataUrl: profile.logoDataUrl,
           name: profile.name,
+          ssmNumber: profile.ssmNumber,
           address: profile.address,
           phone: profile.phone,
           email: profile.email,

@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { updateProfile, type ProfileFormState } from "./actions";
+import { useCapturedOccurrence } from "@/lib/useCapturedOccurrence";
+import Toast from "@/components/Toast";
 
 type Profile = {
   logoDataUrl: string | null;
@@ -22,6 +24,13 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
     initialState
   );
   const [logoDataUrl, setLogoDataUrl] = useState(profile.logoDataUrl ?? "");
+
+  // `state` is a fresh object reference every time an action completes (even
+  // for back-to-back saves with identical field values), so a distinct
+  // reference is itself enough to count as a new occurrence here — unlike
+  // SuccessToast's URL-param case, there's no recurring string value that
+  // needs its "seen" tracking reset in between.
+  const savedOccurrence = useCapturedOccurrence(state.success ? state : null);
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -139,6 +148,10 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
       <button type="submit" disabled={pending} className="btn-primary disabled:opacity-50">
         {pending ? "Saving..." : "Save"}
       </button>
+
+      {savedOccurrence && (
+        <Toast key={savedOccurrence.nonce} message="Profile saved" />
+      )}
     </form>
   );
 }

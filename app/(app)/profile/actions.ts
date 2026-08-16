@@ -16,7 +16,7 @@ const profileSchema = z.object({
   quotationTerms: z.string(),
 });
 
-export type ProfileFormState = { error?: string };
+export type ProfileFormState = { error?: string; success?: boolean };
 
 export async function updateProfile(
   _prevState: ProfileFormState,
@@ -51,5 +51,5 @@ export async function updateProfile(
   });
 
   revalidatePath("/profile");
-  return {};
+  return { success: true };
 }

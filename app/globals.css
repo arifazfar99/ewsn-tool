@@ -97,4 +97,24 @@ body {
   .stamp-pending {
     @apply border-ink/40 bg-ink/[0.03] text-ink-soft;
   }
+
+  .toast-positive {
+    @apply fixed bottom-6 right-6 z-50 cursor-pointer px-3 py-1.5 shadow-md;
+    /* !important, not source order, is what wins over .stamp-positive's
+       tinted bg-stamp-navy/[0.06] — this sits fixed over arbitrary page
+       content and must stay opaque regardless of future rule reordering. */
+    background-color: var(--color-panel) !important;
+    animation: stamp-in 180ms ease-out;
+  }
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(var(--toast-rotate, 0deg));
+  }
 }

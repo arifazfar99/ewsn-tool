@@ -33,6 +33,10 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+function withSuccess(path: string, message: string) {
+  return `${path}?success=${encodeURIComponent(message)}`;
+}
+
 function parseQuotationForm(formData: FormData) {
   const rawLineItems = formData.get("lineItems")?.toString() ?? "[]";
   let lineItemsJson: unknown = [];
@@ -130,7 +134,7 @@ export async function saveQuotation(formData: FormData) {
 
     revalidatePath("/quotations");
     revalidatePath(`/quotations/${id}`);
-    redirect(`/quotations/${id}`);
+    redirect(withSuccess(`/quotations/${id}`, "Quotation saved"));
   }
 
   let created;
@@ -158,7 +162,7 @@ export async function saveQuotation(formData: FormData) {
   }
 
   revalidatePath("/quotations");
-  redirect(`/quotations/${created.id}`);
+  redirect(withSuccess(`/quotations/${created.id}`, "Quotation saved"));
 }
 
 export async function issueQuotation(formData: FormData) {
@@ -218,7 +222,7 @@ export async function issueQuotation(formData: FormData) {
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);
   revalidatePath(`/quotations/${id}/preview`);
-  redirect(`/quotations/${id}/preview`);
+  redirect(withSuccess(`/quotations/${id}/preview`, "Quotation issued"));
 }
 
 const ALLOWED_TRANSITIONS: Record<QuotationStatus, QuotationStatus[]> = {
@@ -272,5 +276,5 @@ export async function setQuotationStatus(formData: FormData) {
 
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);
-  redirect(`/quotations/${id}`);
+  redirect(withSuccess(`/quotations/${id}`, `Status updated to ${targetStatus}`));
 }

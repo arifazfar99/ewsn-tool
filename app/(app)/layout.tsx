@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { signOut } from "@/lib/auth";
+import SuccessToast from "@/components/SuccessToast";
 
 // Every page here is auth-gated and reads live DB state - never statically
 // prerender any of them at build time (also avoids build-time DB connections).
@@ -65,6 +67,9 @@ export default function AppLayout({
         ))}
       </div>
       <main className="flex-1 px-6 py-8">{children}</main>
+      <Suspense fallback={null}>
+        <SuccessToast />
+      </Suspense>
     </div>
   );
 }

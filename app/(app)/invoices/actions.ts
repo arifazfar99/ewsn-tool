@@ -32,6 +32,10 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+function withSuccess(path: string, message: string) {
+  return `${path}?success=${encodeURIComponent(message)}`;
+}
+
 function parseInvoiceForm(formData: FormData) {
   const rawLineItems = formData.get("lineItems")?.toString() ?? "[]";
   let lineItemsJson: unknown = [];
@@ -118,7 +122,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
   revalidatePath("/delivery-orders");
   revalidatePath(`/delivery-orders/${deliveryOrderId}`);
   revalidatePath("/invoices");
-  redirect(`/invoices/${invoice.id}`);
+  redirect(withSuccess(`/invoices/${invoice.id}`, "Invoice created"));
 }
 
 export async function saveInvoice(formData: FormData) {
@@ -195,7 +199,7 @@ export async function saveInvoice(formData: FormData) {
 
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
-  redirect(`/invoices/${id}`);
+  redirect(withSuccess(`/invoices/${id}`, "Invoice saved"));
 }
 
 // Issuing assigns the number/locks content, and — unlike DeliveryOrder —
@@ -248,7 +252,7 @@ export async function issueInvoice(formData: FormData) {
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
   revalidatePath(`/invoices/${id}/preview`);
-  redirect(`/invoices/${id}/preview`);
+  redirect(withSuccess(`/invoices/${id}/preview`, "Invoice issued"));
 }
 
 // Paid/Unpaid is metadata, not document content, so it's NOT gated by the
@@ -299,5 +303,5 @@ export async function setInvoiceStatus(formData: FormData) {
 
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
-  redirect(`/invoices/${id}`);
+  redirect(withSuccess(`/invoices/${id}`, `Status updated to ${targetStatus}`));
 }

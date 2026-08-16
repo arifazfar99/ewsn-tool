@@ -15,6 +15,10 @@ const clientSchema = z.object({
   email: z.string().trim().optional(),
 });
 
+function withSuccess(path: string, message: string) {
+  return `${path}?success=${encodeURIComponent(message)}`;
+}
+
 function parseClientForm(formData: FormData) {
   return clientSchema.safeParse({
     name: formData.get("name")?.toString() ?? "",
@@ -41,7 +45,7 @@ export async function createClient(formData: FormData) {
 
   await prisma.client.create({ data: parsed.data });
   revalidatePath("/clients");
-  redirect("/clients");
+  redirect(withSuccess("/clients", "Client created"));
 }
 
 export async function updateClient(formData: FormData) {
@@ -66,7 +70,7 @@ export async function updateClient(formData: FormData) {
   await prisma.client.update({ where: { id }, data: parsed.data });
   revalidatePath("/clients");
   revalidatePath(`/clients/${id}`);
-  redirect("/clients");
+  redirect(withSuccess("/clients", "Client updated"));
 }
 
 export async function deleteClient(formData: FormData) {
@@ -96,5 +100,5 @@ export async function deleteClient(formData: FormData) {
   }
 
   revalidatePath("/clients");
-  redirect("/clients");
+  redirect(withSuccess("/clients", "Client deleted"));
 }

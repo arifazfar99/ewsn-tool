@@ -31,6 +31,10 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+function withSuccess(path: string, message: string) {
+  return `${path}?success=${encodeURIComponent(message)}`;
+}
+
 function parseDeliveryOrderForm(formData: FormData) {
   const rawLineItems = formData.get("lineItems")?.toString() ?? "[]";
   let lineItemsJson: unknown = [];
@@ -105,7 +109,9 @@ export async function convertQuotationToDeliveryOrder(formData: FormData) {
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${quotationId}`);
   revalidatePath("/delivery-orders");
-  redirect(`/delivery-orders/${deliveryOrder.id}`);
+  redirect(
+    withSuccess(`/delivery-orders/${deliveryOrder.id}`, "Delivery order created")
+  );
 }
 
 export async function saveDeliveryOrder(formData: FormData) {
@@ -181,7 +187,7 @@ export async function saveDeliveryOrder(formData: FormData) {
 
   revalidatePath("/delivery-orders");
   revalidatePath(`/delivery-orders/${id}`);
-  redirect(`/delivery-orders/${id}`);
+  redirect(withSuccess(`/delivery-orders/${id}`, "Delivery order saved"));
 }
 
 export async function issueDeliveryOrder(formData: FormData) {
@@ -231,7 +237,7 @@ export async function issueDeliveryOrder(formData: FormData) {
   revalidatePath("/delivery-orders");
   revalidatePath(`/delivery-orders/${id}`);
   revalidatePath(`/delivery-orders/${id}/preview`);
-  redirect(`/delivery-orders/${id}/preview`);
+  redirect(withSuccess(`/delivery-orders/${id}/preview`, "Delivery order issued"));
 }
 
 // Issuing (numbering/PDF) does NOT change status away from DRAFT — a DO can
@@ -287,5 +293,7 @@ export async function setDeliveryOrderStatus(formData: FormData) {
 
   revalidatePath("/delivery-orders");
   revalidatePath(`/delivery-orders/${id}`);
-  redirect(`/delivery-orders/${id}`);
+  redirect(
+    withSuccess(`/delivery-orders/${id}`, `Status updated to ${targetStatus}`)
+  );
 }

@@ -13,6 +13,10 @@ const itemSchema = z.object({
   defaultUnitPrice: z.coerce.number().nonnegative(),
 });
 
+function withSuccess(path: string, message: string) {
+  return `${path}?success=${encodeURIComponent(message)}`;
+}
+
 function parseItemForm(formData: FormData) {
   return itemSchema.safeParse({
     name: formData.get("name")?.toString() ?? "",
@@ -40,7 +44,7 @@ export async function createItem(formData: FormData) {
 
   await prisma.item.create({ data: parsed.data });
   revalidatePath("/items");
-  redirect("/items");
+  redirect(withSuccess("/items", "Item created"));
 }
 
 export async function updateItem(formData: FormData) {
@@ -67,7 +71,7 @@ export async function updateItem(formData: FormData) {
   await prisma.item.update({ where: { id }, data: parsed.data });
   revalidatePath("/items");
   revalidatePath(`/items/${id}`);
-  redirect("/items");
+  redirect(withSuccess("/items", "Item updated"));
 }
 
 export async function toggleItemArchived(formData: FormData) {
@@ -89,11 +93,14 @@ export async function toggleItemArchived(formData: FormData) {
     throw new Error("Item not found");
   }
 
+  const archived = !item.archived;
   await prisma.item.update({
     where: { id },
-    data: { archived: !item.archived },
+    data: { archived },
   });
   revalidatePath("/items");
   revalidatePath(`/items/${id}`);
-  redirect(`/items/${id}`);
+  redirect(
+    withSuccess(`/items/${id}`, archived ? "Item archived" : "Item unarchived")
+  );
 }

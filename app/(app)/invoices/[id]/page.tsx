@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveInvoice, setInvoiceStatus } from "../actions";
 import InvoiceForm from "../InvoiceForm";
+import DepositForm from "../DepositForm";
 import { StatusStamp } from "@/components/StatusStamp";
 import { invoiceTone } from "@/lib/statusTone";
 
@@ -81,6 +82,16 @@ export default async function InvoiceDetailPage({
             quantity: line.quantity.toNumber().toString(),
             unitPrice: line.unitPrice.toNumber().toString(),
           }))}
+        />
+
+        <DepositForm
+          invoiceId={invoice.id}
+          defaultDepositReceived={invoice.depositReceived?.toNumber().toString() ?? ""}
+          defaultDepositReceivedAt={
+            invoice.depositReceivedAt
+              ? invoice.depositReceivedAt.toISOString().slice(0, 10)
+              : ""
+          }
         />
 
         <div className="mt-8 max-w-3xl space-y-2">
@@ -191,12 +202,37 @@ export default async function InvoiceDetailPage({
         </div>
       )}
 
+      {invoice.depositReceived != null && (
+        <div className="mb-6">
+          <h2 className="eyebrow mb-1">Deposit</h2>
+          <p className="text-sm text-ink-soft">
+            RM {invoice.depositReceived.toNumber().toFixed(2)} received
+            {invoice.depositReceivedAt &&
+              ` on ${invoice.depositReceivedAt.toLocaleDateString("en-MY")}`}
+          </p>
+          <p className="text-sm font-medium text-ink">
+            Balance Due: RM{" "}
+            {(total - invoice.depositReceived.toNumber()).toFixed(2)}
+          </p>
+        </div>
+      )}
+
       <Link
         href={`/invoices/${invoice.id}/preview`}
         className="link-ink mb-8 inline-block"
       >
         View / Download PDF
       </Link>
+
+      <DepositForm
+        invoiceId={invoice.id}
+        defaultDepositReceived={invoice.depositReceived?.toNumber().toString() ?? ""}
+        defaultDepositReceivedAt={
+          invoice.depositReceivedAt
+            ? invoice.depositReceivedAt.toISOString().slice(0, 10)
+            : ""
+        }
+      />
 
       {transitions.length > 0 && (
         <form

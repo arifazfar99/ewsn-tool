@@ -6,6 +6,7 @@ const PREFIX: Record<DocType, string> = {
   QUOTATION: "QT",
   DELIVERY_ORDER: "DO",
   INVOICE: "INV",
+  DEPOSIT_INVOICE: "DEP",
 };
 
 // Matches the trailing "-YYYY-NNNN" of a document number regardless of the

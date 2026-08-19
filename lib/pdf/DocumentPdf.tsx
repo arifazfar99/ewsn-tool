@@ -30,6 +30,8 @@ export type DocumentPdfProps = {
   footerLabel: string | null;
   footerText: string | null;
   total: number;
+  depositReceived?: number | null;
+  depositReceivedAt?: Date | string | null;
 };
 
 const styles = StyleSheet.create({
@@ -114,6 +116,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     marginBottom: 20,
   },
+  totalRowTight: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 4,
+  },
   totalLabel: {
     fontWeight: 700,
     marginRight: 12,
@@ -165,6 +172,8 @@ export default function DocumentPdf({
   footerLabel,
   footerText,
   total,
+  depositReceived,
+  depositReceivedAt,
 }: DocumentPdfProps) {
   return (
     <Document>
@@ -224,10 +233,34 @@ export default function DocumentPdf({
           ))}
         </View>
 
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{money(total)}</Text>
-        </View>
+        {depositReceived == null ? (
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{money(total)}</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.totalRowTight}>
+              <Text style={styles.totalLabel}>Subtotal</Text>
+              <Text>{money(total)}</Text>
+            </View>
+            <View style={styles.totalRowTight}>
+              <Text style={styles.totalLabel}>
+                Less: Deposit Received
+                {depositReceivedAt
+                  ? ` (${formatDate(new Date(depositReceivedAt))})`
+                  : ""}
+              </Text>
+              <Text>{money(depositReceived)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Balance Due</Text>
+              <Text style={styles.totalValue}>
+                {money(total - depositReceived)}
+              </Text>
+            </View>
+          </>
+        )}
 
         {notes && (
           <View style={styles.section}>

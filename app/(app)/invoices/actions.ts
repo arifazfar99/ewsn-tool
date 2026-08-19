@@ -28,6 +28,11 @@ const invoiceSchema = z.object({
   lineItems: z.array(lineItemSchema).min(1),
 });
 
+const depositSchema = z.object({
+  depositReceived: z.coerce.number().nonnegative().optional(),
+  depositReceivedAt: z.string().trim().optional(),
+});
+
 function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
@@ -253,6 +258,49 @@ export async function issueInvoice(formData: FormData) {
   revalidatePath(`/invoices/${id}`);
   revalidatePath(`/invoices/${id}/preview`);
   redirect(withSuccess(`/invoices/${id}/preview`, "Invoice issued"));
+}
+
+// Deposit received/date is metadata, not document content — same reasoning as
+// Paid/Unpaid below, so it's NOT gated by the issued-lock the way saveInvoice
+// is. Real deposits are often received (and recorded) after an invoice has
+// already been issued and sent, so this must stay editable regardless of
+// issuedAt, not just on the pre-issuance draft form.
+export async function setInvoiceDeposit(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+
+  const id = formData.get("id")?.toString();
+  if (!id) {
+    throw new Error("Missing invoice id");
+  }
+
+  const parsed = depositSchema.safeParse({
+    depositReceived: formData.get("depositReceived")?.toString() || undefined,
+    depositReceivedAt: formData.get("depositReceivedAt")?.toString() || undefined,
+  });
+  if (!parsed.success) {
+    redirect(
+      `/invoices/${id}?error=` +
+        encodeURIComponent("Enter a valid deposit amount.")
+    );
+  }
+
+  const { depositReceived, depositReceivedAt } = parsed.data;
+
+  await prisma.invoice.update({
+    where: { id },
+    data: {
+      depositReceived: depositReceived != null ? round2(depositReceived) : null,
+      depositReceivedAt: depositReceivedAt ? new Date(depositReceivedAt) : null,
+    },
+  });
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath(`/invoices/${id}/preview`);
+  redirect(withSuccess(`/invoices/${id}`, "Deposit updated"));
 }
 
 // Paid/Unpaid is metadata, not document content, so it's NOT gated by the

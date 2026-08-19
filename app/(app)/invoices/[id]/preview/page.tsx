@@ -52,6 +52,8 @@ export default async function InvoicePreviewPage({
     footerLabel: "Bank Details",
     footerText: invoice.bankDetailsText,
     total,
+    depositReceived: invoice.depositReceived?.toNumber() ?? null,
+    depositReceivedAt: invoice.depositReceivedAt ?? null,
   };
 
   return (

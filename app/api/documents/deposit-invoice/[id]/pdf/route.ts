@@ -15,31 +15,25 @@ export async function GET(
 
   const { id } = await params;
 
-  const [invoice, profile] = await Promise.all([
-    prisma.invoice.findUnique({
+  const [depositInvoice, profile] = await Promise.all([
+    prisma.depositInvoice.findUnique({
       where: { id },
-      include: { client: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+      include: { sourceQuotation: { include: { client: true } } },
     }),
     prisma.businessProfile.findUnique({ where: { id: "singleton" } }),
   ]);
 
-  // Nothing to download before issuance: no number assigned yet.
-  if (!invoice || !invoice.issuedAt) {
+  if (!depositInvoice || !depositInvoice.sourceQuotation) {
     return new Response("Not found", { status: 404 });
   }
 
-  const lineItems = invoice.lineItems.map((line) => ({
-    description: line.description,
-    quantity: line.quantity.toNumber(),
-    unitPrice: line.unitPrice.toNumber(),
-    lineTotal: line.lineTotal.toNumber(),
-  }));
-  const total = lineItems.reduce((sum, line) => sum + line.lineTotal, 0);
+  const quotation = depositInvoice.sourceQuotation;
+  const amount = depositInvoice.amount.toNumber();
 
   const element = createElement(DocumentPdf, {
-    docTypeLabel: "INVOICE",
-    number: invoice.number,
-    date: invoice.date,
+    docTypeLabel: "DEPOSIT INVOICE",
+    number: depositInvoice.number,
+    date: depositInvoice.date,
     business: {
       name: profile?.name ?? "",
       ssmNumber: profile?.ssmNumber ?? "",
@@ -49,20 +43,27 @@ export async function GET(
       logoDataUrl: profile?.logoDataUrl ?? null,
     },
     client: {
-      name: invoice.client.name,
-      address: invoice.client.address,
-      contactPerson: invoice.client.contactPerson,
-      phone: invoice.client.phone,
-      email: invoice.client.email,
+      name: quotation.client.name,
+      address: quotation.client.address,
+      contactPerson: quotation.client.contactPerson,
+      phone: quotation.client.phone,
+      email: quotation.client.email,
     },
-    lineItems,
-    title: invoice.title,
-    notes: invoice.notes,
+    lineItems: [
+      {
+        description: `Deposit for Quotation ${quotation.number}${
+          quotation.title ? ` — ${quotation.title}` : ""
+        }`,
+        quantity: 1,
+        unitPrice: amount,
+        lineTotal: amount,
+      },
+    ],
+    title: null,
+    notes: null,
     footerLabel: "Bank Details",
-    footerText: invoice.bankDetailsText,
-    total,
-    depositReceived: invoice.depositReceived?.toNumber() ?? null,
-    depositReceivedAt: invoice.depositReceivedAt ?? null,
+    footerText: profile?.bankDetailsText ?? null,
+    total: amount,
   });
 
   // renderToBuffer's type signature is narrowed to ReactElement<DocumentProps>
@@ -75,7 +76,7 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${invoice.number}.pdf"`,
+      "Content-Disposition": `attachment; filename="${depositInvoice.number}.pdf"`,
     },
   });
 }

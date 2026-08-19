@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveQuotation, setQuotationStatus } from "../actions";
 import { convertQuotationToDeliveryOrder } from "../../delivery-orders/actions";
+import { createDepositInvoice } from "../../deposit-invoices/actions";
 import QuotationForm from "../QuotationForm";
 import { StatusStamp } from "@/components/StatusStamp";
 import { quotationTone } from "@/lib/statusTone";
@@ -37,6 +38,7 @@ export default async function QuotationDetailPage({
       client: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
       deliveryOrder: true,
+      depositInvoice: true,
     },
   });
   if (!quotation) notFound();
@@ -205,6 +207,36 @@ export default async function QuotationDetailPage({
             <input type="hidden" name="quotationId" value={quotation.id} />
             <button type="submit" className="btn-secondary">
               Convert to Delivery Order
+            </button>
+          </form>
+        ))}
+
+      {quotation.depositInvoice ? (
+        <div className="mb-8">
+          <Link
+            href={`/deposit-invoices/${quotation.depositInvoice.id}/preview`}
+            className="link-ink"
+          >
+            View Deposit Invoice &rarr;
+          </Link>
+        </div>
+      ) : (
+        quotation.status === "ACCEPTED" && (
+          <form action={createDepositInvoice} className="mb-8 max-w-xs">
+            <input type="hidden" name="quotationId" value={quotation.id} />
+            <label className="block">
+              <span className="field-label">Deposit Amount (RM)</span>
+              <input
+                type="number"
+                name="amount"
+                step="0.01"
+                min="0.01"
+                defaultValue={(total * 0.5).toFixed(2)}
+                className="field-input"
+              />
+            </label>
+            <button type="submit" className="btn-secondary mt-3">
+              Create Deposit Invoice
             </button>
           </form>
         ))}

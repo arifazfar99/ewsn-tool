@@ -93,6 +93,7 @@ enum DocType {
   QUOTATION
   DELIVERY_ORDER
   INVOICE
+  DEPOSIT_INVOICE
 }
 
 model Quotation {
@@ -112,8 +113,9 @@ model Quotation {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
-  lineItems     QuotationLineItem[]
-  deliveryOrder DeliveryOrder?
+  lineItems      QuotationLineItem[]
+  deliveryOrder  DeliveryOrder?
+  depositInvoice DepositInvoice?
 }
 
 model QuotationLineItem {
@@ -149,6 +151,19 @@ model DeliveryOrder {
   invoice   Invoice?
 }
 
+model DepositInvoice {
+  id                String     @id @default(cuid())
+  number            String?    @unique
+  year              Int?
+  date              DateTime   @default(now())
+  amount            Decimal    @db.Decimal(12, 2)
+  sourceQuotationId String?    @unique
+  sourceQuotation   Quotation? @relation(fields: [sourceQuotationId], references: [id])
+  issuedAt          DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
 model DeliveryOrderLineItem {
   id              String        @id @default(cuid())
   deliveryOrderId String
@@ -175,6 +190,8 @@ model Invoice {
   sourceDeliveryOrderId String?        @unique
   sourceDeliveryOrder   DeliveryOrder? @relation(fields: [sourceDeliveryOrderId], references: [id])
   bankDetailsText       String?
+  depositReceived       Decimal?       @db.Decimal(12, 2)
+  depositReceivedAt     DateTime?
   issuedAt              DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt

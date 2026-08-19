@@ -16,10 +16,17 @@ type LineItemRow = {
   unitPrice: string;
 };
 
+type TermsTemplateOption = {
+  id: string;
+  name: string;
+  text: string;
+};
+
 type QuotationFormProps = {
   action: (formData: FormData) => void;
   clients: { id: string; name: string }[];
   items: ItemOption[];
+  termsTemplates: TermsTemplateOption[];
   quotationId?: string;
   defaultClientId?: string;
   defaultDate?: string;
@@ -27,6 +34,8 @@ type QuotationFormProps = {
   defaultTitle?: string | null;
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
+  defaultTermsTemplateId?: string | null;
+  defaultTermsText?: string | null;
 };
 
 function emptyRow(): LineItemRow {
@@ -44,6 +53,7 @@ export default function QuotationForm({
   action,
   clients,
   items,
+  termsTemplates,
   quotationId,
   defaultClientId,
   defaultDate,
@@ -51,12 +61,24 @@ export default function QuotationForm({
   defaultTitle,
   defaultNotes,
   defaultLineItems,
+  defaultTermsTemplateId,
+  defaultTermsText,
 }: QuotationFormProps) {
   const [rows, setRows] = useState<LineItemRow[]>(
     defaultLineItems && defaultLineItems.length > 0
       ? defaultLineItems
       : [emptyRow()]
   );
+  const [termsTemplateId, setTermsTemplateId] = useState(
+    defaultTermsTemplateId ?? ""
+  );
+  const [termsText, setTermsText] = useState(defaultTermsText ?? "");
+
+  function handleTermsTemplateChange(templateId: string) {
+    const template = termsTemplates.find((t) => t.id === templateId);
+    setTermsTemplateId(templateId);
+    setTermsText(template ? template.text : "");
+  }
 
   function updateRow(index: number, patch: Partial<LineItemRow>) {
     setRows((prev) =>
@@ -229,6 +251,34 @@ export default function QuotationForm({
           name="notes"
           rows={3}
           defaultValue={defaultNotes}
+          className="field-input"
+        />
+      </label>
+
+      <label className="block">
+        <span className="field-label">Terms Template</span>
+        <select
+          name="termsTemplateId"
+          value={termsTemplateId}
+          onChange={(e) => handleTermsTemplateChange(e.target.value)}
+          className="field-input"
+        >
+          <option value="">No template (custom)</option>
+          {termsTemplates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="block">
+        <span className="field-label">Terms</span>
+        <textarea
+          name="termsText"
+          rows={4}
+          value={termsText}
+          onChange={(e) => setTermsText(e.target.value)}
           className="field-input"
         />
       </label>

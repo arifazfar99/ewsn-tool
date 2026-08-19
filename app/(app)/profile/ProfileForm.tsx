@@ -13,7 +13,6 @@ type Profile = {
   phone: string;
   email: string;
   bankDetailsText: string;
-  quotationTerms: string;
 };
 
 const initialState: ProfileFormState = {};
@@ -128,18 +127,6 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
         <textarea
           name="bankDetailsText"
           defaultValue={profile.bankDetailsText}
-          rows={4}
-          className="field-input"
-        />
-      </label>
-
-      <label className="block">
-        <span className="field-label">
-          Quotation terms (shown on quotations)
-        </span>
-        <textarea
-          name="quotationTerms"
-          defaultValue={profile.quotationTerms}
           rows={4}
           className="field-input"
         />

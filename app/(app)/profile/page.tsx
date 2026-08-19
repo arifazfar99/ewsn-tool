@@ -1,10 +1,14 @@
 import { prisma } from "@/lib/db";
 import ProfileForm from "./ProfileForm";
+import TermsTemplatesManager from "./TermsTemplatesManager";
 
 export default async function ProfilePage() {
-  const profile = (await prisma.businessProfile.findUnique({
-    where: { id: "singleton" },
-  })) ?? {
+  const [profile, templates] = await Promise.all([
+    prisma.businessProfile.findUnique({ where: { id: "singleton" } }),
+    prisma.quotationTermsTemplate.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
+  const resolvedProfile = profile ?? {
     logoDataUrl: null,
     name: "",
     ssmNumber: "",
@@ -12,7 +16,6 @@ export default async function ProfilePage() {
     phone: "",
     email: "",
     bankDetailsText: "",
-    quotationTerms: "",
   };
 
   return (
@@ -20,16 +23,20 @@ export default async function ProfilePage() {
       <h1 className="h1-ledger mb-6">Business Profile</h1>
       <ProfileForm
         profile={{
-          logoDataUrl: profile.logoDataUrl,
-          name: profile.name,
-          ssmNumber: profile.ssmNumber,
-          address: profile.address,
-          phone: profile.phone,
-          email: profile.email,
-          bankDetailsText: profile.bankDetailsText,
-          quotationTerms: profile.quotationTerms,
+          logoDataUrl: resolvedProfile.logoDataUrl,
+          name: resolvedProfile.name,
+          ssmNumber: resolvedProfile.ssmNumber,
+          address: resolvedProfile.address,
+          phone: resolvedProfile.phone,
+          email: resolvedProfile.email,
+          bankDetailsText: resolvedProfile.bankDetailsText,
         }}
       />
+
+      <h2 className="mb-4 mt-10 text-lg font-semibold text-ink">
+        Quotation Terms Templates
+      </h2>
+      <TermsTemplatesManager templates={templates} />
     </div>
   );
 }

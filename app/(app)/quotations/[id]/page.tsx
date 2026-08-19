@@ -42,7 +42,7 @@ export default async function QuotationDetailPage({
   if (!quotation) notFound();
 
   if (!quotation.issuedAt) {
-    const [clients, items, defaultNumber] = await Promise.all([
+    const [clients, items, defaultNumber, termsTemplates] = await Promise.all([
       prisma.client.findMany({ orderBy: { name: "asc" } }),
       prisma.item.findMany({
         where: { archived: false },
@@ -51,6 +51,7 @@ export default async function QuotationDetailPage({
       quotation.number
         ? Promise.resolve(quotation.number)
         : previewNextDocumentNumber("QUOTATION"),
+      prisma.quotationTermsTemplate.findMany({ orderBy: { name: "asc" } }),
     ]);
 
     return (
@@ -84,6 +85,13 @@ export default async function QuotationDetailPage({
             quantity: line.quantity.toNumber().toString(),
             unitPrice: line.unitPrice.toNumber().toString(),
           }))}
+          termsTemplates={termsTemplates.map((t) => ({
+            id: t.id,
+            name: t.name,
+            text: t.text,
+          }))}
+          defaultTermsTemplateId={quotation.termsTemplateId ?? ""}
+          defaultTermsText={quotation.termsText ?? ""}
         />
 
         <div className="mt-8 max-w-3xl">
@@ -163,6 +171,15 @@ export default async function QuotationDetailPage({
         <div className="mb-6">
           <h2 className="mb-1 text-sm font-medium text-ink">Notes</h2>
           <p className="text-sm text-ink-soft">{quotation.notes}</p>
+        </div>
+      )}
+
+      {quotation.termsText && (
+        <div className="mb-6">
+          <h2 className="mb-1 text-sm font-medium text-ink">
+            Terms &amp; Conditions
+          </h2>
+          <p className="text-sm text-ink-soft">{quotation.termsText}</p>
         </div>
       )}
 

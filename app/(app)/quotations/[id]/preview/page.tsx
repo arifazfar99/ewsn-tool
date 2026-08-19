@@ -50,9 +50,7 @@ export default async function QuotationPreviewPage({
     title: quotation.title,
     notes: quotation.notes,
     footerLabel: "Terms & Conditions",
-    footerText: quotation.issuedAt
-      ? quotation.termsText
-      : (profile?.quotationTerms ?? ""),
+    footerText: quotation.termsText,
     total,
   };
 

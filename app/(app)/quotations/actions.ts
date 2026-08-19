@@ -26,6 +26,8 @@ const quotationSchema = z.object({
   number: z.string().trim().optional(),
   title: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  termsTemplateId: z.string().trim().optional(),
+  termsText: z.string().trim().optional(),
   lineItems: z.array(lineItemSchema).min(1),
 });
 
@@ -52,6 +54,8 @@ function parseQuotationForm(formData: FormData) {
     number: formData.get("number")?.toString() || undefined,
     title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
+    termsTemplateId: formData.get("termsTemplateId")?.toString() || undefined,
+    termsText: formData.get("termsText")?.toString() || undefined,
     lineItems: lineItemsJson,
   });
 }
@@ -75,7 +79,8 @@ export async function saveQuotation(formData: FormData) {
     );
   }
 
-  const { clientId, date, number, title, notes, lineItems } = parsed.data;
+  const { clientId, date, number, title, notes, termsTemplateId, termsText, lineItems } =
+    parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -90,6 +95,13 @@ export async function saveQuotation(formData: FormData) {
     (id ? `/quotations/${id}` : "/quotations/new") +
     "?error=" +
     encodeURIComponent("That quotation number is already in use.");
+
+  const staleTermsTemplateError = () =>
+    (id ? `/quotations/${id}` : "/quotations/new") +
+    "?error=" +
+    encodeURIComponent(
+      "That terms template no longer exists — pick another and save again."
+    );
 
   if (id) {
     const existing = await prisma.quotation.findUnique({
@@ -120,14 +132,21 @@ export async function saveQuotation(formData: FormData) {
             year,
             title: title || null,
             notes: notes ?? null,
+            termsTemplateId: termsTemplateId || null,
+            termsText: termsText ?? null,
             lineItems: { create: preparedLines },
           },
         });
         await syncCounterFromNumber(tx, "QUOTATION", number);
       });
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-        redirect(duplicateNumberError());
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === "P2002") {
+          redirect(duplicateNumberError());
+        }
+        if (e.code === "P2003") {
+          redirect(staleTermsTemplateError());
+        }
       }
       throw e;
     }
@@ -148,6 +167,8 @@ export async function saveQuotation(formData: FormData) {
           year,
           title: title || null,
           notes: notes ?? null,
+          termsTemplateId: termsTemplateId || null,
+          termsText: termsText ?? null,
           lineItems: { create: preparedLines },
         },
       });
@@ -155,8 +176,13 @@ export async function saveQuotation(formData: FormData) {
       return quotation;
     });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      redirect(duplicateNumberError());
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e.code === "P2002") {
+        redirect(duplicateNumberError());
+      }
+      if (e.code === "P2003") {
+        redirect(staleTermsTemplateError());
+      }
     }
     throw e;
   }
@@ -196,14 +222,12 @@ export async function issueQuotation(formData: FormData) {
     );
   }
 
-  const profile = await prisma.businessProfile.findUnique({
-    where: { id: "singleton" },
-  });
-
   await prisma.$transaction(async (tx) => {
     // A number typed in on the draft (and already synced to the counter via
     // syncCounterFromNumber in saveQuotation) is kept as-is; only fall back
-    // to auto-generating one if the draft was left blank.
+    // to auto-generating one if the draft was left blank. termsText is
+    // likewise already populated from the draft save and simply freezes
+    // here like every other field, same as title/notes.
     const { number, year } = quotation.number
       ? { number: quotation.number, year: quotation.year ?? new Date().getFullYear() }
       : await nextDocumentNumber(tx, "QUOTATION");
@@ -214,7 +238,6 @@ export async function issueQuotation(formData: FormData) {
         year,
         issuedAt: new Date(),
         status: QuotationStatus.SENT,
-        termsText: profile?.quotationTerms ?? "",
       },
     });
   });

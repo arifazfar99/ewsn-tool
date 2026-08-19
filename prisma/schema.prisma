@@ -23,8 +23,18 @@ model BusinessProfile {
   phone           String   @default("")
   email           String   @default("")
   bankDetailsText String   @default("")
-  quotationTerms  String   @default("")
   updatedAt       DateTime @updatedAt
+}
+
+model QuotationTermsTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  text      String   @default("")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotations Quotation[]
 }
 
 model Client {
@@ -95,6 +105,8 @@ model Quotation {
   title     String?
   notes     String?
   status    QuotationStatus @default(DRAFT)
+  termsTemplateId String?
+  termsTemplate   QuotationTermsTemplate? @relation(fields: [termsTemplateId], references: [id], onDelete: SetNull)
   termsText String?
   issuedAt  DateTime?
   createdAt DateTime        @default(now())

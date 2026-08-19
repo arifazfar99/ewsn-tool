@@ -10,14 +10,16 @@ export default async function NewQuotationPage({
 }) {
   const { error } = await searchParams;
 
-  const [clients, items, suggestedNumber] = await Promise.all([
+  const [clients, items, suggestedNumber, termsTemplates] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
     prisma.item.findMany({
       where: { archived: false },
       orderBy: { name: "asc" },
     }),
     previewNextDocumentNumber("QUOTATION"),
+    prisma.quotationTermsTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
+  const defaultTemplate = termsTemplates.find((t) => t.isDefault);
 
   return (
     <div>
@@ -38,8 +40,15 @@ export default async function NewQuotationPage({
           unit: it.unit,
           defaultUnitPrice: it.defaultUnitPrice.toNumber(),
         }))}
+        termsTemplates={termsTemplates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          text: t.text,
+        }))}
         defaultDate={new Date().toISOString().slice(0, 10)}
         defaultNumber={suggestedNumber}
+        defaultTermsTemplateId={defaultTemplate?.id ?? ""}
+        defaultTermsText={defaultTemplate?.text ?? ""}
       />
     </div>
   );

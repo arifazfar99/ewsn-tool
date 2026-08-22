@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone, deliveryOrderTone, invoiceTone } from "@/lib/statusTone";
+import { round2 } from "@/lib/money";
 
 export default async function DashboardPage() {
   const [
@@ -17,7 +18,7 @@ export default async function DashboardPage() {
     prisma.quotation.count({ where: { status: "ACCEPTED" } }),
     prisma.quotation.findMany({
       where: { status: "ACCEPTED" },
-      include: { lineItems: true },
+      include: { lineItems: true, costs: true },
     }),
     prisma.invoice.findMany({
       where: { status: "UNPAID" },
@@ -52,6 +53,13 @@ export default async function DashboardPage() {
       sum + q.lineItems.reduce((s, line) => s + line.lineTotal.toNumber(), 0),
     0
   );
+
+  const totalCosts = acceptedQuotations.reduce(
+    (sum, q) => sum + q.costs.reduce((s, c) => s + c.amount.toNumber(), 0),
+    0
+  );
+
+  const netSales = round2(totalSales - totalCosts);
 
   const recent = [
     ...recentQuotations.map((q) => ({
@@ -92,6 +100,12 @@ export default async function DashboardPage() {
     { label: "Quotations", value: quotationCount },
     { label: "Accepted Quotations", value: acceptedQuotationCount },
     { label: "Total Sales", value: `RM ${totalSales.toFixed(2)}` },
+    { label: "Total Costs", value: `RM ${totalCosts.toFixed(2)}` },
+    {
+      label: "Net Sales",
+      value: `RM ${netSales.toFixed(2)}`,
+      danger: netSales < 0,
+    },
     { label: "Unpaid Invoices", value: unpaidInvoices.length },
     { label: "Unpaid Total", value: `RM ${unpaidTotal.toFixed(2)}` },
   ];
@@ -100,11 +114,15 @@ export default async function DashboardPage() {
     <div>
       <h1 className="page-title mb-6">Dashboard</h1>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="panel p-4">
             <p className="eyebrow">{s.label}</p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-ink">
+            <p
+              className={`mt-1 font-mono text-2xl font-semibold ${
+                s.danger ? "text-danger" : "text-ink"
+              }`}
+            >
               {s.value}
             </p>
           </div>

@@ -299,3 +299,139 @@ export async function setQuotationStatus(formData: FormData) {
   revalidatePath(`/quotations/${id}`);
   redirect(withSuccess(`/quotations/${id}`, `Status updated to ${targetStatus}`));
 }
+
+const costSchema = z.object({
+  label: z.string().trim().min(1),
+  amount: z.coerce.number().nonnegative(),
+});
+
+function parseCostForm(formData: FormData) {
+  return costSchema.safeParse({
+    label: formData.get("label")?.toString() ?? "",
+    amount: formData.get("amount")?.toString() ?? "",
+  });
+}
+
+export async function createQuotationCost(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+
+  const quotationId = formData.get("quotationId")?.toString();
+  if (!quotationId) {
+    throw new Error("Missing quotation id");
+  }
+
+  const parsed = parseCostForm(formData);
+  if (!parsed.success) {
+    redirect(
+      `/quotations/${quotationId}?error=` +
+        encodeURIComponent("Cost label and amount are required.")
+    );
+  }
+
+  const quotation = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    select: { issuedAt: true },
+  });
+  if (!quotation) {
+    throw new Error("Quotation not found");
+  }
+  if (!quotation.issuedAt) {
+    redirect(
+      `/quotations/${quotationId}?error=` +
+        encodeURIComponent("Costs can only be added once the quotation is issued.")
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const count = await tx.quotationCost.count({ where: { quotationId } });
+    await tx.quotationCost.create({
+      data: {
+        quotationId,
+        label: parsed.data.label,
+        amount: round2(parsed.data.amount),
+        sortOrder: count,
+      },
+    });
+  });
+
+  revalidatePath(`/quotations/${quotationId}`);
+  redirect(withSuccess(`/quotations/${quotationId}`, "Cost added"));
+}
+
+export async function updateQuotationCost(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+
+  const id = formData.get("id")?.toString();
+  const quotationId = formData.get("quotationId")?.toString();
+  if (!id || !quotationId) {
+    throw new Error("Missing cost or quotation id");
+  }
+
+  const parsed = parseCostForm(formData);
+  if (!parsed.success) {
+    redirect(
+      `/quotations/${quotationId}?error=` +
+        encodeURIComponent("Cost label and amount are required.")
+    );
+  }
+
+  const existing = await prisma.quotationCost.findUnique({
+    where: { id },
+    select: { quotationId: true, quotation: { select: { issuedAt: true } } },
+  });
+  if (!existing || existing.quotationId !== quotationId) {
+    throw new Error("Cost not found");
+  }
+  if (!existing.quotation.issuedAt) {
+    redirect(
+      `/quotations/${quotationId}?error=` +
+        encodeURIComponent("Costs can only be edited once the quotation is issued.")
+    );
+  }
+
+  await prisma.quotationCost.update({
+    where: { id },
+    data: { label: parsed.data.label, amount: round2(parsed.data.amount) },
+  });
+
+  revalidatePath(`/quotations/${quotationId}`);
+  redirect(withSuccess(`/quotations/${quotationId}`, "Cost updated"));
+}
+
+export async function deleteQuotationCost(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+
+  const id = formData.get("id")?.toString();
+  const quotationId = formData.get("quotationId")?.toString();
+  if (!id || !quotationId) {
+    throw new Error("Missing cost or quotation id");
+  }
+
+  const existing = await prisma.quotationCost.findUnique({
+    where: { id },
+    select: { quotationId: true, quotation: { select: { issuedAt: true } } },
+  });
+  if (!existing || existing.quotationId !== quotationId) {
+    throw new Error("Cost not found");
+  }
+  if (!existing.quotation.issuedAt) {
+    redirect(
+      `/quotations/${quotationId}?error=` +
+        encodeURIComponent("Costs can only be deleted once the quotation is issued.")
+    );
+  }
+
+  await prisma.quotationCost.delete({ where: { id } });
+
+  revalidatePath(`/quotations/${quotationId}`);
+  redirect(withSuccess(`/quotations/${quotationId}`, "Cost deleted"));
+}

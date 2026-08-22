@@ -6,6 +6,7 @@ import { saveQuotation, setQuotationStatus } from "../actions";
 import { convertQuotationToDeliveryOrder } from "../../delivery-orders/actions";
 import { createDepositInvoice } from "../../deposit-invoices/actions";
 import QuotationForm from "../QuotationForm";
+import QuotationCostsManager from "../QuotationCostsManager";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 
@@ -37,6 +38,7 @@ export default async function QuotationDetailPage({
     include: {
       client: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
+      costs: { orderBy: { sortOrder: "asc" } },
       deliveryOrder: true,
       depositInvoice: true,
     },
@@ -183,6 +185,16 @@ export default async function QuotationDetailPage({
       >
         View / Download PDF
       </Link>
+
+      <QuotationCostsManager
+        quotationId={quotation.id}
+        costs={quotation.costs.map((c) => ({
+          id: c.id,
+          label: c.label,
+          amount: c.amount.toNumber(),
+        }))}
+        totalSales={total}
+      />
 
       {quotation.status === "ACCEPTED" &&
         (quotation.deliveryOrder ? (

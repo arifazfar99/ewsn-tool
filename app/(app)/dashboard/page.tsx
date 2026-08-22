@@ -6,16 +6,19 @@ import { quotationTone, deliveryOrderTone, invoiceTone } from "@/lib/statusTone"
 export default async function DashboardPage() {
   const [
     quotationCount,
-    deliveryOrderCount,
-    invoiceCount,
+    acceptedQuotationCount,
+    acceptedQuotations,
     unpaidInvoices,
     recentQuotations,
     recentDeliveryOrders,
     recentInvoices,
   ] = await Promise.all([
     prisma.quotation.count(),
-    prisma.deliveryOrder.count(),
-    prisma.invoice.count(),
+    prisma.quotation.count({ where: { status: "ACCEPTED" } }),
+    prisma.quotation.findMany({
+      where: { status: "ACCEPTED" },
+      include: { lineItems: true },
+    }),
     prisma.invoice.findMany({
       where: { status: "UNPAID" },
       include: { lineItems: true },
@@ -41,6 +44,12 @@ export default async function DashboardPage() {
     (sum, inv) =>
       sum +
       inv.lineItems.reduce((s, line) => s + line.lineTotal.toNumber(), 0),
+    0
+  );
+
+  const totalSales = acceptedQuotations.reduce(
+    (sum, q) =>
+      sum + q.lineItems.reduce((s, line) => s + line.lineTotal.toNumber(), 0),
     0
   );
 
@@ -81,8 +90,9 @@ export default async function DashboardPage() {
 
   const stats = [
     { label: "Quotations", value: quotationCount },
-    { label: "Delivery Orders", value: deliveryOrderCount },
-    { label: "Invoices", value: invoiceCount },
+    { label: "Accepted Quotations", value: acceptedQuotationCount },
+    { label: "Total Sales", value: `RM ${totalSales.toFixed(2)}` },
+    { label: "Unpaid Invoices", value: unpaidInvoices.length },
     { label: "Unpaid Total", value: `RM ${unpaidTotal.toFixed(2)}` },
   ];
 
@@ -90,7 +100,7 @@ export default async function DashboardPage() {
     <div>
       <h1 className="page-title mb-6">Dashboard</h1>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((s) => (
           <div key={s.label} className="panel p-4">
             <p className="eyebrow">{s.label}</p>

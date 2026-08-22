@@ -54,6 +54,7 @@ export default async function InvoicePreviewPage({
     total,
     depositReceived: invoice.depositReceived?.toNumber() ?? null,
     depositReceivedAt: invoice.depositReceivedAt ?? null,
+    showThankYou: true,
   };
 
   return (

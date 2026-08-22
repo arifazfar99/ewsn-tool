@@ -79,6 +79,7 @@ export default async function ReceiptPreviewPage({
     footerLabel: null,
     footerText: null,
     total: amount,
+    showThankYou: true,
   };
 
   return (

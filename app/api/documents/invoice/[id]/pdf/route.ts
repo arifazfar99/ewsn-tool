@@ -63,6 +63,7 @@ export async function GET(
     total,
     depositReceived: invoice.depositReceived?.toNumber() ?? null,
     depositReceivedAt: invoice.depositReceivedAt ?? null,
+    showThankYou: true,
   });
 
   // renderToBuffer's type signature is narrowed to ReactElement<DocumentProps>

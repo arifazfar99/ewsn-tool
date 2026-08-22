@@ -32,6 +32,7 @@ export type DocumentPdfProps = {
   total: number;
   depositReceived?: number | null;
   depositReceivedAt?: Date | string | null;
+  showThankYou?: boolean; // Invoice/Receipt only - a payment context, unlike Quotation/DO/DepositInvoice
 };
 
 const styles = StyleSheet.create({
@@ -146,6 +147,21 @@ const styles = StyleSheet.create({
   footerText: {
     color: "#3f3f46",
   },
+  noteContainer: {
+    marginTop: 24,
+  },
+  thankYouNote: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#3f3f46",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  generatedNote: {
+    fontSize: 9,
+    color: "#a1a1aa",
+    textAlign: "center",
+  },
 });
 
 function money(value: number): string {
@@ -174,6 +190,7 @@ export default function DocumentPdf({
   total,
   depositReceived,
   depositReceivedAt,
+  showThankYou,
 }: DocumentPdfProps) {
   return (
     <Document>
@@ -275,6 +292,15 @@ export default function DocumentPdf({
             <Text style={styles.footerText}>{footerText}</Text>
           </View>
         )}
+
+        <View style={styles.noteContainer}>
+          {showThankYou && (
+            <Text style={styles.thankYouNote}>Thank you for your business!</Text>
+          )}
+          <Text style={styles.generatedNote}>
+            This is a computer-generated document and does not require a signature.
+          </Text>
+        </View>
       </Page>
     </Document>
   );

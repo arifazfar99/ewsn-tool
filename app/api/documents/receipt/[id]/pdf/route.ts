@@ -91,6 +91,7 @@ export async function GET(
     footerLabel: null,
     footerText: null,
     total: amount,
+    showThankYou: true,
   });
 
   // renderToBuffer's type signature is narrowed to ReactElement<DocumentProps>

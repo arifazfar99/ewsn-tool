@@ -17,13 +17,9 @@ export default async function EditClientPage({
 
   return (
     <div>
-      <h1 className="h1-ledger mb-6">Edit Client</h1>
+      <h1 className="page-title mb-6">Edit Client</h1>
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block max-w-xl !text-left">
-          {error}
-        </p>
-      )}
+      {error && <p className="alert-danger mb-4 max-w-xl">{error}</p>}
 
       <form action={updateClient} className="max-w-xl space-y-5">
         <input type="hidden" name="id" value={client.id} />

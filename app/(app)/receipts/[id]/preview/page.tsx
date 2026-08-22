@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import PreviewClient from "./PreviewClient";
+import PdfPreviewClient from "@/components/PdfPreviewClient";
 
 export default async function ReceiptPreviewPage({
   params,
@@ -85,13 +85,13 @@ export default async function ReceiptPreviewPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Receipt Preview</h1>
+        <h1 className="page-title">Receipt Preview</h1>
         <a href={`/api/documents/receipt/${receipt.id}/pdf`} className="btn-primary">
           Download PDF
         </a>
       </div>
 
-      <PreviewClient {...pdfProps} />
+      <PdfPreviewClient {...pdfProps} />
     </div>
   );
 }

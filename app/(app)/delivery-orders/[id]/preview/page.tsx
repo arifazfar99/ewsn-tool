@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { issueDeliveryOrder } from "../../actions";
-import PreviewClient from "./PreviewClient";
+import PdfPreviewClient from "@/components/PdfPreviewClient";
 
 export default async function DeliveryOrderPreviewPage({
   params,
@@ -57,7 +57,7 @@ export default async function DeliveryOrderPreviewPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Delivery Order Preview</h1>
+        <h1 className="page-title">Delivery Order Preview</h1>
         <div className="flex items-center gap-4">
           {deliveryOrder.issuedAt ? (
             <a
@@ -77,7 +77,7 @@ export default async function DeliveryOrderPreviewPage({
         </div>
       </div>
 
-      <PreviewClient {...pdfProps} />
+      <PdfPreviewClient {...pdfProps} />
     </div>
   );
 }

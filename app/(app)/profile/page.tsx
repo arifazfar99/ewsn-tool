@@ -20,7 +20,7 @@ export default async function ProfilePage() {
 
   return (
     <div>
-      <h1 className="h1-ledger mb-6">Business Profile</h1>
+      <h1 className="page-title mb-6">Business Profile</h1>
       <ProfileForm
         profile={{
           logoDataUrl: resolvedProfile.logoDataUrl,

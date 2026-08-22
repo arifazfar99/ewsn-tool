@@ -44,11 +44,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
 
   return (
     <form action={formAction} className="panel max-w-xl space-y-5 p-6">
-      {state.error && (
-        <p className="stamp stamp-negative !block !text-left">
-          {state.error}
-        </p>
-      )}
+      {state.error && <p className="alert-danger">{state.error}</p>}
 
       <input type="hidden" name="logoDataUrl" value={logoDataUrl} />
 
@@ -59,7 +55,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
           <img
             src={logoDataUrl}
             alt="Business logo"
-            className="mb-2 h-16 w-auto rounded-sm border border-paper-line object-contain"
+            className="mb-2 h-16 w-auto rounded-sm border border-border object-contain"
           />
         )}
         <input

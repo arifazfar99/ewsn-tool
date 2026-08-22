@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { updateItem, toggleItemArchived } from "../actions";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function EditItemPage({
   params,
@@ -19,15 +19,11 @@ export default async function EditItemPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Edit Item</h1>
-        {item.archived && <StatusStamp label="ARCHIVED" tone="pending" />}
+        <h1 className="page-title">Edit Item</h1>
+        {item.archived && <StatusBadge label="ARCHIVED" tone="pending" />}
       </div>
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block max-w-xl !text-left">
-          {error}
-        </p>
-      )}
+      {error && <p className="alert-danger mb-4 max-w-xl">{error}</p>}
 
       <form action={updateItem} className="max-w-xl space-y-5">
         <input type="hidden" name="id" value={item.id} />

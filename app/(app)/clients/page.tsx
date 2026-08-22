@@ -7,7 +7,7 @@ export default async function ClientsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Clients</h1>
+        <h1 className="page-title">Clients</h1>
         <Link href="/clients/new" className="btn-primary">
           New Client
         </Link>
@@ -16,7 +16,8 @@ export default async function ClientsPage() {
       {clients.length === 0 ? (
         <p className="text-sm text-ink-soft">No clients yet.</p>
       ) : (
-        <table className="table-ledger">
+        <div className="overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -36,7 +37,7 @@ export default async function ClientsPage() {
                 <td className="text-ink-soft">{client.phone ?? "-"}</td>
                 <td className="text-ink-soft">{client.email ?? "-"}</td>
                 <td className="text-right">
-                  <Link href={`/clients/${client.id}`} className="link-ink">
+                  <Link href={`/clients/${client.id}`} className="link">
                     Edit
                   </Link>
                 </td>
@@ -44,6 +45,7 @@ export default async function ClientsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

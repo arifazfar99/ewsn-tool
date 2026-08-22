@@ -4,14 +4,13 @@ import dynamic from "next/dynamic";
 import type { DocumentPdfProps } from "@/lib/pdf/DocumentPdf";
 
 // react-pdf's PDFViewer needs browser APIs (renders into an iframe), so it
-// can't be part of the server-rendered HTML.
+// can't be part of the server-rendered HTML. Shared by every doc type's
+// preview page - was previously duplicated byte-for-byte 5 times.
 const PdfViewer = dynamic(() => import("@/lib/pdf/PdfViewer"), {
   ssr: false,
-  loading: () => (
-    <p className="text-sm text-ink-soft">Loading preview...</p>
-  ),
+  loading: () => <p className="text-sm text-ink-soft">Loading preview...</p>,
 });
 
-export default function PreviewClient(props: DocumentPdfProps) {
+export default function PdfPreviewClient(props: DocumentPdfProps) {
   return <PdfViewer {...props} />;
 }

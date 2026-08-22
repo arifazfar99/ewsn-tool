@@ -33,17 +33,10 @@ export default async function LoginPage({
         className="panel w-full max-w-sm p-8 shadow-sm"
       >
         <p className="eyebrow mb-1">EWSN Document Tool</p>
-        <h1
-          className="mb-6 text-2xl font-semibold text-ink"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Log in
-        </h1>
+        <h1 className="mb-6 text-2xl font-semibold text-ink">Log in</h1>
 
         {error && (
-          <p className="stamp stamp-negative mb-5 !block !text-left">
-            Invalid email or password
-          </p>
+          <p className="alert-danger mb-5">Invalid email or password</p>
         )}
 
         <label className="mb-3 block">

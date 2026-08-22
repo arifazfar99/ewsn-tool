@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { issueInvoice } from "../../actions";
-import PreviewClient from "./PreviewClient";
+import PdfPreviewClient from "@/components/PdfPreviewClient";
 
 export default async function InvoicePreviewPage({
   params,
@@ -60,7 +60,7 @@ export default async function InvoicePreviewPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Invoice Preview</h1>
+        <h1 className="page-title">Invoice Preview</h1>
         <div className="flex items-center gap-4">
           {invoice.issuedAt ? (
             <a
@@ -80,7 +80,7 @@ export default async function InvoicePreviewPage({
         </div>
       </div>
 
-      <PreviewClient {...pdfProps} />
+      <PdfPreviewClient {...pdfProps} />
     </div>
   );
 }

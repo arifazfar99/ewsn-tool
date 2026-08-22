@@ -35,7 +35,7 @@ export default function TermsTemplatesManager({
           <form
             key={t.id}
             action={updateTermsTemplate}
-            className="space-y-3 border-b border-paper-line pb-4"
+            className="space-y-3 border-b border-border pb-4"
           >
             <input type="hidden" name="id" value={t.id} />
             <label className="block">
@@ -72,7 +72,7 @@ export default function TermsTemplatesManager({
         ) : (
           <div
             key={t.id}
-            className="flex items-start justify-between gap-3 border-b border-paper-line pb-4"
+            className="flex items-start justify-between gap-3 border-b border-border pb-4"
           >
             <div>
               <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function TermsTemplatesManager({
               {!t.isDefault && (
                 <form action={setDefaultTermsTemplate}>
                   <input type="hidden" name="id" value={t.id} />
-                  <button type="submit" className="link-ink">
+                  <button type="submit" className="link">
                     Set default
                   </button>
                 </form>
@@ -99,7 +99,7 @@ export default function TermsTemplatesManager({
               <button
                 type="button"
                 onClick={() => setEditingId(t.id)}
-                className="link-ink"
+                className="link"
               >
                 Edit
               </button>

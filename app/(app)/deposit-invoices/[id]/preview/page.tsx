@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { setDepositInvoiceReceived } from "../../actions";
 import { issueReceiptForDepositInvoice } from "@/app/(app)/receipts/actions";
-import { StatusStamp } from "@/components/StatusStamp";
-import PreviewClient from "./PreviewClient";
+import { StatusBadge } from "@/components/StatusBadge";
+import PdfPreviewClient from "@/components/PdfPreviewClient";
 
 export default async function DepositInvoicePreviewPage({
   params,
@@ -70,7 +70,7 @@ export default async function DepositInvoicePreviewPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Deposit Invoice Preview</h1>
+        <h1 className="page-title">Deposit Invoice Preview</h1>
         <a
           href={`/api/documents/deposit-invoice/${depositInvoice.id}/pdf`}
           className="btn-primary"
@@ -79,15 +79,11 @@ export default async function DepositInvoicePreviewPage({
         </a>
       </div>
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block max-w-3xl !text-left">
-          {error}
-        </p>
-      )}
+      {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
 
-      <PreviewClient {...pdfProps} />
+      <PdfPreviewClient {...pdfProps} />
 
-      <div className="mt-8 max-w-3xl space-y-4 border-t border-paper-line pt-6">
+      <div className="mt-8 max-w-3xl space-y-4 border-t border-border pt-6">
         {!depositInvoice.receivedAt ? (
           <form
             action={setDepositInvoiceReceived}
@@ -109,7 +105,7 @@ export default async function DepositInvoicePreviewPage({
           </form>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
-            <StatusStamp label="RECEIVED" tone="positive" />
+            <StatusBadge label="RECEIVED" tone="positive" />
             <span className="text-sm text-ink-soft">
               on {depositInvoice.receivedAt.toLocaleDateString("en-MY")}
             </span>
@@ -120,7 +116,7 @@ export default async function DepositInvoicePreviewPage({
           (depositInvoice.receipt ? (
             <Link
               href={`/receipts/${depositInvoice.receipt.id}/preview`}
-              className="link-ink inline-block"
+              className="link inline-block"
             >
               View Receipt →
             </Link>

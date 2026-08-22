@@ -6,7 +6,7 @@ import { saveQuotation, setQuotationStatus } from "../actions";
 import { convertQuotationToDeliveryOrder } from "../../delivery-orders/actions";
 import { createDepositInvoice } from "../../deposit-invoices/actions";
 import QuotationForm from "../QuotationForm";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 
 const NEXT_STATUS_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -58,13 +58,9 @@ export default async function QuotationDetailPage({
 
     return (
       <div>
-        <h1 className="h1-ledger mb-6">Edit Quotation</h1>
+        <h1 className="page-title mb-6">Edit Quotation</h1>
 
-        {error && (
-          <p className="stamp stamp-negative mb-4 !block max-w-3xl !text-left">
-            {error}
-          </p>
-        )}
+        {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
 
         <QuotationForm
           action={saveQuotation}
@@ -99,7 +95,7 @@ export default async function QuotationDetailPage({
         <div className="mt-8 max-w-3xl">
           <Link
             href={`/quotations/${quotation.id}/preview`}
-            className="link-ink"
+            className="link"
           >
             Preview / Generate PDF
           </Link>
@@ -117,34 +113,31 @@ export default async function QuotationDetailPage({
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Quotation {quotation.number}</h1>
-        <StatusStamp label={quotation.status} tone={quotationTone[quotation.status]} />
+        <h1 className="page-title">Quotation {quotation.number}</h1>
+        <StatusBadge label={quotation.status} tone={quotationTone[quotation.status]} />
       </div>
 
       {quotation.title && (
         <p className="mb-6 -mt-4 text-sm text-ink-soft">{quotation.title}</p>
       )}
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block !text-left">
-          {error}
-        </p>
-      )}
+      {error && <p className="alert-danger mb-4">{error}</p>}
 
-      <dl className="mb-6 grid grid-cols-2 gap-4 text-sm">
+      <dl className="panel mb-6 grid grid-cols-2 gap-4 p-4 text-sm">
         <div>
-          <dt className="text-ink-soft">Client</dt>
-          <dd className="text-ink">{quotation.client.name}</dd>
+          <dt className="eyebrow">Client</dt>
+          <dd className="mt-1 text-ink">{quotation.client.name}</dd>
         </div>
         <div>
-          <dt className="text-ink-soft">Date</dt>
-          <dd className="text-ink">
+          <dt className="eyebrow">Date</dt>
+          <dd className="mt-1 text-ink">
             {quotation.date.toLocaleDateString("en-MY")}
           </dd>
         </div>
       </dl>
 
-      <table className="table-ledger mb-4">
+      <div className="overflow-x-auto">
+      <table className="data-table mb-4">
         <thead>
           <tr>
             <th>Description</th>
@@ -164,30 +157,29 @@ export default async function QuotationDetailPage({
           ))}
         </tbody>
       </table>
+      </div>
 
       <p className="mb-6 text-right text-sm font-medium text-ink">
-        Total: RM {total.toFixed(2)}
+        Total: <span className="font-mono">RM {total.toFixed(2)}</span>
       </p>
 
       {quotation.notes && (
         <div className="mb-6">
-          <h2 className="mb-1 text-sm font-medium text-ink">Notes</h2>
+          <h2 className="eyebrow mb-1">Notes</h2>
           <p className="text-sm text-ink-soft">{quotation.notes}</p>
         </div>
       )}
 
       {quotation.termsText && (
         <div className="mb-6">
-          <h2 className="mb-1 text-sm font-medium text-ink">
-            Terms &amp; Conditions
-          </h2>
+          <h2 className="eyebrow mb-1">Terms &amp; Conditions</h2>
           <p className="text-sm text-ink-soft">{quotation.termsText}</p>
         </div>
       )}
 
       <Link
         href={`/quotations/${quotation.id}/preview`}
-        className="link-ink mb-8 inline-block"
+        className="link mb-8 inline-block"
       >
         View / Download PDF
       </Link>
@@ -197,7 +189,7 @@ export default async function QuotationDetailPage({
           <div className="mb-8">
             <Link
               href={`/delivery-orders/${quotation.deliveryOrder.id}`}
-              className="link-ink"
+              className="link"
             >
               View Delivery Order &rarr;
             </Link>
@@ -215,7 +207,7 @@ export default async function QuotationDetailPage({
         <div className="mb-8">
           <Link
             href={`/deposit-invoices/${quotation.depositInvoice.id}/preview`}
-            className="link-ink"
+            className="link"
           >
             View Deposit Invoice &rarr;
           </Link>
@@ -244,12 +236,10 @@ export default async function QuotationDetailPage({
       {transitions.length > 0 && (
         <form
           action={setQuotationStatus}
-          className="flex flex-wrap items-center gap-2 border-t border-paper-line pt-6"
+          className="flex flex-wrap items-center gap-2 border-t border-border pt-6"
         >
           <input type="hidden" name="id" value={quotation.id} />
-          <span className="mr-2 text-sm font-medium text-ink">
-            Change status:
-          </span>
+          <span className="eyebrow mr-2">Change status:</span>
           {transitions.map((t) => (
             <button
               key={t.value}

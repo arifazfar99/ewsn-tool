@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone, deliveryOrderTone, invoiceTone } from "@/lib/statusTone";
 
 export default async function DashboardPage() {
@@ -88,9 +88,9 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="h1-ledger mb-6">Dashboard</h1>
+      <h1 className="page-title mb-6">Dashboard</h1>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="panel p-4">
             <p className="eyebrow">{s.label}</p>
@@ -107,7 +107,8 @@ export default async function DashboardPage() {
       {recent.length === 0 ? (
         <p className="text-sm text-ink-soft">No documents yet.</p>
       ) : (
-        <table className="table-ledger">
+        <div className="overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Type</th>
@@ -126,10 +127,10 @@ export default async function DashboardPage() {
                 <td className="text-ink-soft">{doc.client}</td>
                 <td className="text-ink-soft">{doc.title ?? "—"}</td>
                 <td>
-                  <StatusStamp label={doc.status} tone={doc.tone} />
+                  <StatusBadge label={doc.status} tone={doc.tone} />
                 </td>
                 <td className="text-right">
-                  <Link href={doc.href} className="link-ink">
+                  <Link href={doc.href} className="link">
                     View
                   </Link>
                 </td>
@@ -137,6 +138,7 @@ export default async function DashboardPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

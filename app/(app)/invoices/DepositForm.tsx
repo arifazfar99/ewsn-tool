@@ -15,7 +15,7 @@ export default function DepositForm({
   return (
     <form
       action={setInvoiceDeposit}
-      className="max-w-3xl space-y-3 border-t border-paper-line pt-6"
+      className="max-w-3xl space-y-3 border-t border-border pt-6"
     >
       <input type="hidden" name="id" value={invoiceId} />
       <span className="field-label">Deposit</span>

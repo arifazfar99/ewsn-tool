@@ -6,7 +6,7 @@ import { saveInvoice, setInvoiceStatus } from "../actions";
 import { issueReceiptForInvoice } from "@/app/(app)/receipts/actions";
 import InvoiceForm from "../InvoiceForm";
 import DepositForm from "../DepositForm";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { invoiceTone } from "@/lib/statusTone";
 
 const NEXT_STATUS_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -56,13 +56,9 @@ export default async function InvoiceDetailPage({
 
     return (
       <div>
-        <h1 className="h1-ledger mb-6">Edit Invoice</h1>
+        <h1 className="page-title mb-6">Edit Invoice</h1>
 
-        {error && (
-          <p className="stamp stamp-negative mb-4 !block max-w-3xl !text-left">
-            {error}
-          </p>
-        )}
+        {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
 
         <InvoiceForm
           action={saveInvoice}
@@ -102,13 +98,13 @@ export default async function InvoiceDetailPage({
               From delivery order{" "}
               <Link
                 href={`/delivery-orders/${invoice.sourceDeliveryOrder.id}`}
-                className="link-ink"
+                className="link"
               >
                 {invoice.sourceDeliveryOrder.number ?? "DRAFT"}
               </Link>
             </p>
           )}
-          <Link href={`/invoices/${invoice.id}/preview`} className="link-ink">
+          <Link href={`/invoices/${invoice.id}/preview`} className="link">
             Preview / Generate PDF
           </Link>
         </div>
@@ -125,17 +121,15 @@ export default async function InvoiceDetailPage({
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Invoice {invoice.number}</h1>
-        <StatusStamp label={invoice.status} tone={invoiceTone[invoice.status]} />
+        <h1 className="page-title">Invoice {invoice.number}</h1>
+        <StatusBadge label={invoice.status} tone={invoiceTone[invoice.status]} />
       </div>
 
       {invoice.title && (
         <p className="mb-6 -mt-4 text-sm text-ink-soft">{invoice.title}</p>
       )}
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block !text-left">{error}</p>
-      )}
+      {error && <p className="alert-danger mb-4">{error}</p>}
 
       <dl className="panel mb-6 grid grid-cols-2 gap-4 p-4 text-sm">
         <div>
@@ -154,7 +148,7 @@ export default async function InvoiceDetailPage({
             <dd className="mt-1 text-ink">
               <Link
                 href={`/delivery-orders/${invoice.sourceDeliveryOrder.id}`}
-                className="link-ink"
+                className="link"
               >
                 {invoice.sourceDeliveryOrder.number ?? "DRAFT"}
               </Link>
@@ -163,7 +157,8 @@ export default async function InvoiceDetailPage({
         )}
       </dl>
 
-      <table className="table-ledger mb-4">
+      <div className="overflow-x-auto">
+      <table className="data-table mb-4">
         <thead>
           <tr>
             <th>Description</th>
@@ -183,6 +178,7 @@ export default async function InvoiceDetailPage({
           ))}
         </tbody>
       </table>
+      </div>
 
       <p className="mb-6 text-right text-sm font-medium text-ink">
         Total: <span className="font-mono">RM {total.toFixed(2)}</span>
@@ -221,7 +217,7 @@ export default async function InvoiceDetailPage({
 
       <Link
         href={`/invoices/${invoice.id}/preview`}
-        className="link-ink mb-8 inline-block"
+        className="link mb-8 inline-block"
       >
         View / Download PDF
       </Link>
@@ -231,7 +227,7 @@ export default async function InvoiceDetailPage({
         // recorded at that moment - editing the deposit afterward would make
         // the already-issued receipt (and its PDF) silently disagree with
         // this page, so the deposit is locked once a receipt exists.
-        <p className="max-w-3xl border-t border-paper-line pt-6 text-sm text-ink-soft">
+        <p className="max-w-3xl border-t border-border pt-6 text-sm text-ink-soft">
           Deposit locked - a receipt has already been issued for this invoice.
         </p>
       ) : (
@@ -250,7 +246,7 @@ export default async function InvoiceDetailPage({
         (invoice.receipt ? (
           <Link
             href={`/receipts/${invoice.receipt.id}/preview`}
-            className="link-ink my-6 block"
+            className="link my-6 block"
           >
             View Receipt →
           </Link>
@@ -266,7 +262,7 @@ export default async function InvoiceDetailPage({
       {transitions.length > 0 && (
         <form
           action={setInvoiceStatus}
-          className="flex flex-wrap items-center gap-2 border-t border-paper-line pt-6"
+          className="flex flex-wrap items-center gap-2 border-t border-border pt-6"
         >
           <input type="hidden" name="id" value={invoice.id} />
           <span className="eyebrow mr-2">Change status:</span>

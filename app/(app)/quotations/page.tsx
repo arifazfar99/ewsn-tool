@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { QuotationStatus, Prisma } from "@/generated/prisma/client";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 
 export default async function QuotationsPage({
@@ -40,7 +40,7 @@ export default async function QuotationsPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Quotations</h1>
+        <h1 className="page-title">Quotations</h1>
         <Link href="/quotations/new" className="btn-primary">
           New Quotation
         </Link>
@@ -102,7 +102,7 @@ export default async function QuotationsPage({
           Filter
         </button>
         {hasFilters && (
-          <Link href="/quotations" className="link-ink">
+          <Link href="/quotations" className="link">
             Clear filters
           </Link>
         )}
@@ -111,7 +111,8 @@ export default async function QuotationsPage({
       {quotations.length === 0 ? (
         <p className="text-sm text-ink-soft">No quotations yet.</p>
       ) : (
-        <table className="table-ledger">
+        <div className="overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Number</th>
@@ -141,14 +142,14 @@ export default async function QuotationsPage({
                   </td>
                   <td>{q.date.toLocaleDateString("en-MY")}</td>
                   <td>
-                    <StatusStamp
+                    <StatusBadge
                       label={q.status}
                       tone={quotationTone[q.status]}
                     />
                   </td>
                   <td className="num">RM {total.toFixed(2)}</td>
                   <td className="text-right">
-                    <Link href={`/quotations/${q.id}`} className="link-ink">
+                    <Link href={`/quotations/${q.id}`} className="link">
                       View
                     </Link>
                   </td>
@@ -157,6 +158,7 @@ export default async function QuotationsPage({
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

@@ -23,13 +23,9 @@ export default async function NewQuotationPage({
 
   return (
     <div>
-      <h1 className="h1-ledger mb-6">New Quotation</h1>
+      <h1 className="page-title mb-6">New Quotation</h1>
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block max-w-3xl !text-left">
-          {error}
-        </p>
-      )}
+      {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
 
       <QuotationForm
         action={saveQuotation}

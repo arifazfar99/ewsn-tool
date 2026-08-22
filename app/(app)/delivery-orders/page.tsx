@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { DeliveryOrderStatus, Prisma } from "@/generated/prisma/client";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { deliveryOrderTone } from "@/lib/statusTone";
 
 export default async function DeliveryOrdersPage({
@@ -40,7 +40,7 @@ export default async function DeliveryOrdersPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Delivery Orders</h1>
+        <h1 className="page-title">Delivery Orders</h1>
       </div>
 
       <form
@@ -99,7 +99,7 @@ export default async function DeliveryOrdersPage({
           Filter
         </button>
         {hasFilters && (
-          <Link href="/delivery-orders" className="link-ink">
+          <Link href="/delivery-orders" className="link">
             Clear filters
           </Link>
         )}
@@ -110,7 +110,8 @@ export default async function DeliveryOrdersPage({
           No delivery orders yet. Convert an accepted quotation to create one.
         </p>
       ) : (
-        <table className="table-ledger">
+        <div className="overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Number</th>
@@ -135,7 +136,7 @@ export default async function DeliveryOrdersPage({
                 </td>
                 <td>{d.date.toLocaleDateString("en-MY")}</td>
                 <td>
-                  <StatusStamp
+                  <StatusBadge
                     label={d.status}
                     tone={deliveryOrderTone[d.status]}
                   />
@@ -144,7 +145,7 @@ export default async function DeliveryOrdersPage({
                   {d.sourceQuotation ? (
                     <Link
                       href={`/quotations/${d.sourceQuotation.id}`}
-                      className="link-ink"
+                      className="link"
                     >
                       {d.sourceQuotation.number ?? "DRAFT"}
                     </Link>
@@ -153,7 +154,7 @@ export default async function DeliveryOrdersPage({
                   )}
                 </td>
                 <td className="text-right">
-                  <Link href={`/delivery-orders/${d.id}`} className="link-ink">
+                  <Link href={`/delivery-orders/${d.id}`} className="link">
                     View
                   </Link>
                 </td>
@@ -161,6 +162,7 @@ export default async function DeliveryOrdersPage({
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

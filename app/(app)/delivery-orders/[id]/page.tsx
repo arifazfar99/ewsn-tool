@@ -5,7 +5,7 @@ import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveDeliveryOrder, setDeliveryOrderStatus } from "../actions";
 import { convertDeliveryOrderToInvoice } from "../../invoices/actions";
 import DeliveryOrderForm from "../DeliveryOrderForm";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { deliveryOrderTone } from "@/lib/statusTone";
 
 const NEXT_STATUS_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -51,13 +51,9 @@ export default async function DeliveryOrderDetailPage({
 
     return (
       <div>
-        <h1 className="h1-ledger mb-6">Edit Delivery Order</h1>
+        <h1 className="page-title mb-6">Edit Delivery Order</h1>
 
-        {error && (
-          <p className="stamp stamp-negative mb-4 !block max-w-3xl !text-left">
-            {error}
-          </p>
-        )}
+        {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
 
         <DeliveryOrderForm
           action={saveDeliveryOrder}
@@ -86,7 +82,7 @@ export default async function DeliveryOrderDetailPage({
               From quotation{" "}
               <Link
                 href={`/quotations/${deliveryOrder.sourceQuotation.id}`}
-                className="link-ink"
+                className="link"
               >
                 {deliveryOrder.sourceQuotation.number ?? "DRAFT"}
               </Link>
@@ -94,7 +90,7 @@ export default async function DeliveryOrderDetailPage({
           )}
           <Link
             href={`/delivery-orders/${deliveryOrder.id}/preview`}
-            className="link-ink inline-block"
+            className="link inline-block"
           >
             Preview / Generate PDF
           </Link>
@@ -112,10 +108,10 @@ export default async function DeliveryOrderDetailPage({
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">
+        <h1 className="page-title">
           Delivery Order {deliveryOrder.number}
         </h1>
-        <StatusStamp
+        <StatusBadge
           label={deliveryOrder.status}
           tone={deliveryOrderTone[deliveryOrder.status]}
         />
@@ -125,11 +121,9 @@ export default async function DeliveryOrderDetailPage({
         <p className="mb-6 -mt-4 text-sm text-ink-soft">{deliveryOrder.title}</p>
       )}
 
-      {error && (
-        <p className="stamp stamp-negative mb-4 !block !text-left">{error}</p>
-      )}
+      {error && <p className="alert-danger mb-4">{error}</p>}
 
-      <dl className="mb-6 grid grid-cols-2 gap-4 text-sm">
+      <dl className="panel mb-6 grid grid-cols-2 gap-4 p-4 text-sm">
         <div>
           <dt className="eyebrow">Client</dt>
           <dd className="mt-1 text-ink">{deliveryOrder.client.name}</dd>
@@ -146,7 +140,7 @@ export default async function DeliveryOrderDetailPage({
             <dd className="mt-1 text-ink">
               <Link
                 href={`/quotations/${deliveryOrder.sourceQuotation.id}`}
-                className="link-ink"
+                className="link"
               >
                 {deliveryOrder.sourceQuotation.number ?? "DRAFT"}
               </Link>
@@ -155,7 +149,8 @@ export default async function DeliveryOrderDetailPage({
         )}
       </dl>
 
-      <table className="table-ledger mb-4">
+      <div className="overflow-x-auto">
+      <table className="data-table mb-4">
         <thead>
           <tr>
             <th>Description</th>
@@ -179,9 +174,10 @@ export default async function DeliveryOrderDetailPage({
           ))}
         </tbody>
       </table>
+      </div>
 
-      <p className="mb-6 text-right font-mono text-sm font-medium text-ink">
-        Total: RM {total.toFixed(2)}
+      <p className="mb-6 text-right text-sm font-medium text-ink">
+        Total: <span className="font-mono">RM {total.toFixed(2)}</span>
       </p>
 
       {deliveryOrder.notes && (
@@ -193,7 +189,7 @@ export default async function DeliveryOrderDetailPage({
 
       <Link
         href={`/delivery-orders/${deliveryOrder.id}/preview`}
-        className="link-ink mb-4 inline-block"
+        className="link mb-4 inline-block"
       >
         View / Download PDF
       </Link>
@@ -202,7 +198,7 @@ export default async function DeliveryOrderDetailPage({
         {deliveryOrder.invoice ? (
           <Link
             href={`/invoices/${deliveryOrder.invoice.id}`}
-            className="link-ink"
+            className="link"
           >
             View Invoice &rarr;
           </Link>
@@ -222,12 +218,10 @@ export default async function DeliveryOrderDetailPage({
       {transitions.length > 0 && (
         <form
           action={setDeliveryOrderStatus}
-          className="flex flex-wrap items-center gap-2 border-t border-paper-line pt-6"
+          className="flex flex-wrap items-center gap-2 border-t border-border pt-6"
         >
           <input type="hidden" name="id" value={deliveryOrder.id} />
-          <span className="mr-2 text-sm font-medium text-ink">
-            Change status:
-          </span>
+          <span className="eyebrow mr-2">Change status:</span>
           {transitions.map((t) => (
             <button
               key={t.value}

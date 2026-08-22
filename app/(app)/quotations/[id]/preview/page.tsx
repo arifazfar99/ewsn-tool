@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { issueQuotation } from "../../actions";
-import PreviewClient from "./PreviewClient";
+import PdfPreviewClient from "@/components/PdfPreviewClient";
 
 export default async function QuotationPreviewPage({
   params,
@@ -57,7 +57,7 @@ export default async function QuotationPreviewPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Quotation Preview</h1>
+        <h1 className="page-title">Quotation Preview</h1>
         <div className="flex items-center gap-4">
           {quotation.issuedAt ? (
             <a
@@ -77,7 +77,7 @@ export default async function QuotationPreviewPage({
         </div>
       </div>
 
-      <PreviewClient {...pdfProps} />
+      <PdfPreviewClient {...pdfProps} />
     </div>
   );
 }

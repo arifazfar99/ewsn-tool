@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function ItemsPage({
   searchParams,
@@ -18,11 +18,11 @@ export default async function ItemsPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Items</h1>
+        <h1 className="page-title">Items</h1>
         <div className="flex items-center gap-4">
           <Link
             href={showAll ? "/items" : "/items?showArchived=1"}
-            className="link-ink"
+            className="link"
           >
             {showAll ? "Hide archived" : "Show archived"}
           </Link>
@@ -35,7 +35,8 @@ export default async function ItemsPage({
       {items.length === 0 ? (
         <p className="text-sm text-ink-soft">No items yet.</p>
       ) : (
-        <table className="table-ledger">
+        <div className="overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -55,11 +56,11 @@ export default async function ItemsPage({
                 </td>
                 <td>
                   {item.archived && (
-                    <StatusStamp label="ARCHIVED" tone="pending" />
+                    <StatusBadge label="ARCHIVED" tone="pending" />
                   )}
                 </td>
                 <td className="text-right">
-                  <Link href={`/items/${item.id}`} className="link-ink">
+                  <Link href={`/items/${item.id}`} className="link">
                     Edit
                   </Link>
                 </td>
@@ -67,6 +68,7 @@ export default async function ItemsPage({
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

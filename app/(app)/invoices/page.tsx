@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { InvoiceStatus, Prisma } from "@/generated/prisma/client";
-import { StatusStamp } from "@/components/StatusStamp";
+import { StatusBadge } from "@/components/StatusBadge";
 import { invoiceTone } from "@/lib/statusTone";
 
 export default async function InvoicesPage({
@@ -40,7 +40,7 @@ export default async function InvoicesPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="h1-ledger">Invoices</h1>
+        <h1 className="page-title">Invoices</h1>
       </div>
 
       <form
@@ -99,7 +99,7 @@ export default async function InvoicesPage({
           Filter
         </button>
         {hasFilters && (
-          <Link href="/invoices" className="link-ink">
+          <Link href="/invoices" className="link">
             Clear filters
           </Link>
         )}
@@ -110,7 +110,8 @@ export default async function InvoicesPage({
           No invoices yet. Convert an issued delivery order to create one.
         </p>
       ) : (
-        <table className="table-ledger">
+        <div className="overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Number</th>
@@ -135,13 +136,13 @@ export default async function InvoicesPage({
                 </td>
                 <td>{inv.date.toLocaleDateString("en-MY")}</td>
                 <td>
-                  <StatusStamp label={inv.status} tone={invoiceTone[inv.status]} />
+                  <StatusBadge label={inv.status} tone={invoiceTone[inv.status]} />
                 </td>
                 <td>
                   {inv.sourceDeliveryOrder ? (
                     <Link
                       href={`/delivery-orders/${inv.sourceDeliveryOrder.id}`}
-                      className="link-ink"
+                      className="link"
                     >
                       {inv.sourceDeliveryOrder.number ?? "DRAFT"}
                     </Link>
@@ -150,7 +151,7 @@ export default async function InvoicesPage({
                   )}
                 </td>
                 <td className="text-right">
-                  <Link href={`/invoices/${inv.id}`} className="link-ink">
+                  <Link href={`/invoices/${inv.id}`} className="link">
                     View
                   </Link>
                 </td>
@@ -158,6 +159,7 @@ export default async function InvoicesPage({
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

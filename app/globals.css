@@ -1,34 +1,38 @@
 @import "tailwindcss";
 
 /*
- * Design system: "ledger book". Pale ledger-paper background, ink-green
- * type, and document status rendered as ink-stamp marks (the real device
- * Malaysian business owners still use to mark PAID/VOID on paper). See
- * CLAUDE.md-adjacent design notes: this is a deliberate single light theme,
- * not a dark-mode-aware one — a "paper" surface has no dark counterpart.
+ * Design system: flat, corporate, single light theme (no dark-mode
+ * counterpart — a deliberate choice, not a gap). Solid tints, no
+ * borders-as-decoration, no dimensional effects (shadows are used only for
+ * real elevation, never gimmicks).
  */
 @theme {
-  --color-paper: #f2f4ec;
-  --color-panel: #fbfbf6;
-  --color-paper-line: #c7d2bc;
-  --color-ink: #202b22;
-  --color-ink-soft: #5c6b57;
-  --color-stamp-navy: #2b4a63;
-  --color-stamp-red: #b23a2b;
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef0f3;
+  --color-border: #e1e4e9;
+  --color-ink: #14171c;
+  --color-ink-soft: #5b6472;
+  --color-primary: #17395c;
+  --color-primary-hover: #102943;
+  --color-primary-soft: #e7eef4;
+  --color-success: #1c7c4b;
+  --color-success-soft: #e5f5ea;
+  --color-success-text: #166534;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbeae9;
 
-  --font-display: var(--font-plex-serif);
   --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--color-paper);
+  background: var(--color-bg);
   color: var(--color-ink);
 }
 
 @layer components {
-  .h1-ledger {
-    font-family: var(--font-display);
+  .page-title {
     @apply text-[1.65rem] font-semibold tracking-tight text-ink;
   }
 
@@ -37,23 +41,27 @@ body {
   }
 
   .panel {
-    @apply rounded-sm border border-paper-line bg-panel;
+    @apply rounded-md border border-border bg-surface shadow-sm;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm bg-stamp-navy px-4 py-2 text-sm font-medium text-panel transition-colors hover:bg-[#20374a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stamp-navy;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm border border-paper-line bg-panel px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stamp-navy;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm border border-stamp-red/50 bg-panel px-4 py-2 text-sm font-medium text-stamp-red transition-colors hover:bg-stamp-red/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stamp-red;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-danger/50 bg-surface px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger;
   }
 
-  .link-ink {
-    @apply text-sm font-medium text-stamp-navy underline decoration-stamp-navy/30 underline-offset-4 hover:decoration-stamp-navy;
+  .link {
+    @apply text-sm font-medium text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary;
+  }
+
+  .alert-danger {
+    @apply rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger;
   }
 
   .field-label {
@@ -61,60 +69,54 @@ body {
   }
 
   .field-input {
-    @apply w-full rounded-sm border border-paper-line bg-panel px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-soft/60 focus:border-stamp-navy focus:outline-none focus:ring-1 focus:ring-stamp-navy;
+    @apply w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-soft/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
   }
 
-  .table-ledger {
+  .data-table {
     @apply w-full border-collapse text-sm;
   }
-  .table-ledger thead tr {
-    @apply border-b border-paper-line text-left text-ink-soft;
+  .data-table thead tr {
+    @apply border-b border-border bg-surface-muted text-left text-ink-soft;
   }
-  .table-ledger th {
-    @apply py-2 pr-4 text-xs font-semibold uppercase tracking-wide;
+  .data-table th {
+    @apply py-2 px-4 text-xs font-semibold uppercase tracking-wide first:pl-4;
   }
-  .table-ledger tbody tr {
-    @apply border-b border-paper-line/60;
+  .data-table tbody tr {
+    @apply border-b border-border/60 hover:bg-surface-muted/60;
   }
-  .table-ledger td {
-    @apply py-2.5 pr-4 align-middle text-ink;
+  .data-table td {
+    @apply py-2.5 px-4 align-middle text-ink first:pl-4;
   }
-  .table-ledger td.num {
+  .data-table td.num {
     font-family: var(--font-mono);
   }
 
-  .stamp {
-    font-family: var(--font-mono);
-    @apply inline-block whitespace-nowrap rounded-[2px] border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest;
-    box-shadow: inset 0 0 0 1px currentColor;
+  .badge {
+    @apply inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
   }
-  .stamp-positive {
-    @apply border-stamp-navy bg-stamp-navy/[0.06] text-stamp-navy;
+  .badge-positive {
+    @apply bg-success-soft text-success-text;
   }
-  .stamp-negative {
-    @apply border-stamp-red bg-stamp-red/[0.06] text-stamp-red;
+  .badge-negative {
+    @apply bg-danger-soft text-danger;
   }
-  .stamp-pending {
-    @apply border-ink/40 bg-ink/[0.03] text-ink-soft;
+  .badge-pending {
+    @apply bg-surface-muted text-ink-soft;
   }
 
-  .toast-positive {
-    @apply fixed bottom-6 right-6 z-50 cursor-pointer px-3 py-1.5 shadow-md;
-    /* !important, not source order, is what wins over .stamp-positive's
-       tinted bg-stamp-navy/[0.06] — this sits fixed over arbitrary page
-       content and must stay opaque regardless of future rule reordering. */
-    background-color: var(--color-panel) !important;
-    animation: stamp-in 180ms ease-out;
+  .toast {
+    @apply fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-ink shadow-md;
+    animation: toast-in 180ms ease-out;
   }
 }
 
-@keyframes stamp-in {
+@keyframes toast-in {
   from {
     opacity: 0;
-    transform: scale(1.4);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1) rotate(var(--toast-rotate, 0deg));
+    transform: translateY(0);
   }
 }

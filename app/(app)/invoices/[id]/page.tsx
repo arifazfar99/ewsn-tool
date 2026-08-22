@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveInvoice, setInvoiceStatus } from "../actions";
+import { issueReceiptForInvoice } from "@/app/(app)/receipts/actions";
 import InvoiceForm from "../InvoiceForm";
 import DepositForm from "../DepositForm";
 import { StatusStamp } from "@/components/StatusStamp";
@@ -37,6 +38,7 @@ export default async function InvoiceDetailPage({
       client: true,
       sourceDeliveryOrder: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
+      receipt: true,
     },
   });
   if (!invoice) notFound();
@@ -224,15 +226,42 @@ export default async function InvoiceDetailPage({
         View / Download PDF
       </Link>
 
-      <DepositForm
-        invoiceId={invoice.id}
-        defaultDepositReceived={invoice.depositReceived?.toNumber().toString() ?? ""}
-        defaultDepositReceivedAt={
-          invoice.depositReceivedAt
-            ? invoice.depositReceivedAt.toISOString().slice(0, 10)
-            : ""
-        }
-      />
+      {invoice.receipt ? (
+        // A Receipt's amount is computed once at issuance from the deposit
+        // recorded at that moment - editing the deposit afterward would make
+        // the already-issued receipt (and its PDF) silently disagree with
+        // this page, so the deposit is locked once a receipt exists.
+        <p className="max-w-3xl border-t border-paper-line pt-6 text-sm text-ink-soft">
+          Deposit locked - a receipt has already been issued for this invoice.
+        </p>
+      ) : (
+        <DepositForm
+          invoiceId={invoice.id}
+          defaultDepositReceived={invoice.depositReceived?.toNumber().toString() ?? ""}
+          defaultDepositReceivedAt={
+            invoice.depositReceivedAt
+              ? invoice.depositReceivedAt.toISOString().slice(0, 10)
+              : ""
+          }
+        />
+      )}
+
+      {invoice.status === "PAID" &&
+        (invoice.receipt ? (
+          <Link
+            href={`/receipts/${invoice.receipt.id}/preview`}
+            className="link-ink my-6 block"
+          >
+            View Receipt →
+          </Link>
+        ) : (
+          <form action={issueReceiptForInvoice} className="my-6">
+            <input type="hidden" name="invoiceId" value={invoice.id} />
+            <button type="submit" className="btn-secondary">
+              Issue Receipt
+            </button>
+          </form>
+        ))}
 
       {transitions.length > 0 && (
         <form

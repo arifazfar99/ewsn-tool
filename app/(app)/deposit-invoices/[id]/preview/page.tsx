@@ -1,18 +1,28 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { setDepositInvoiceReceived } from "../../actions";
+import { issueReceiptForDepositInvoice } from "@/app/(app)/receipts/actions";
+import { StatusStamp } from "@/components/StatusStamp";
 import PreviewClient from "./PreviewClient";
 
 export default async function DepositInvoicePreviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
+  const { error } = await searchParams;
 
   const [depositInvoice, profile] = await Promise.all([
     prisma.depositInvoice.findUnique({
       where: { id },
-      include: { sourceQuotation: { include: { client: true } } },
+      include: {
+        sourceQuotation: { include: { client: true } },
+        receipt: true,
+      },
     }),
     prisma.businessProfile.findUnique({ where: { id: "singleton" } }),
   ]);
@@ -69,7 +79,60 @@ export default async function DepositInvoicePreviewPage({
         </a>
       </div>
 
+      {error && (
+        <p className="stamp stamp-negative mb-4 !block max-w-3xl !text-left">
+          {error}
+        </p>
+      )}
+
       <PreviewClient {...pdfProps} />
+
+      <div className="mt-8 max-w-3xl space-y-4 border-t border-paper-line pt-6">
+        {!depositInvoice.receivedAt ? (
+          <form
+            action={setDepositInvoiceReceived}
+            className="flex flex-wrap items-end gap-3"
+          >
+            <input type="hidden" name="id" value={depositInvoice.id} />
+            <label className="block">
+              <span className="field-label">Date Received</span>
+              <input
+                type="date"
+                name="receivedAt"
+                defaultValue={new Date().toISOString().slice(0, 10)}
+                className="field-input"
+              />
+            </label>
+            <button type="submit" className="btn-secondary">
+              Mark as Received
+            </button>
+          </form>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusStamp label="RECEIVED" tone="positive" />
+            <span className="text-sm text-ink-soft">
+              on {depositInvoice.receivedAt.toLocaleDateString("en-MY")}
+            </span>
+          </div>
+        )}
+
+        {depositInvoice.receivedAt &&
+          (depositInvoice.receipt ? (
+            <Link
+              href={`/receipts/${depositInvoice.receipt.id}/preview`}
+              className="link-ink inline-block"
+            >
+              View Receipt →
+            </Link>
+          ) : (
+            <form action={issueReceiptForDepositInvoice}>
+              <input type="hidden" name="depositInvoiceId" value={depositInvoice.id} />
+              <button type="submit" className="btn-secondary">
+                Issue Receipt
+              </button>
+            </form>
+          ))}
+      </div>
     </div>
   );
 }

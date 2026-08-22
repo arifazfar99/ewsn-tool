@@ -7,15 +7,19 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { nextDocumentNumber } from "@/lib/numbering";
+import { round2 } from "@/lib/money";
 
 const depositInvoiceSchema = z.object({
   quotationId: z.string().trim().min(1),
   amount: z.coerce.number().positive(),
 });
 
-function round2(n: number) {
-  return Math.round(n * 100) / 100;
-}
+const receivedSchema = z.object({
+  receivedAt: z
+    .string()
+    .trim()
+    .refine((v) => !Number.isNaN(new Date(v).getTime()), "Invalid date"),
+});
 
 function withSuccess(path: string, message: string) {
   return `${path}?success=${encodeURIComponent(message)}`;
@@ -91,4 +95,43 @@ export async function createDepositInvoice(formData: FormData) {
   redirect(
     withSuccess(`/deposit-invoices/${depositInvoice.id}/preview`, "Deposit invoice created")
   );
+}
+
+// Received/date is metadata, not document content (same reasoning as
+// Invoice's setInvoiceDeposit) - a DepositInvoice is always already issued
+// (created+issued atomically), so this is a one-way confirmation, not gated
+// by anything beyond the doc existing.
+export async function setDepositInvoiceReceived(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+
+  const id = formData.get("id")?.toString();
+  if (!id) {
+    throw new Error("Missing deposit invoice id");
+  }
+
+  const parsed = receivedSchema.safeParse({
+    receivedAt: formData.get("receivedAt")?.toString() ?? "",
+  });
+  if (!parsed.success) {
+    redirect(
+      `/deposit-invoices/${id}/preview?error=` +
+        encodeURIComponent("Enter a valid date received.")
+    );
+  }
+
+  const depositInvoice = await prisma.depositInvoice.findUnique({ where: { id } });
+  if (!depositInvoice) {
+    throw new Error("Deposit invoice not found");
+  }
+
+  await prisma.depositInvoice.update({
+    where: { id },
+    data: { receivedAt: new Date(parsed.data.receivedAt) },
+  });
+
+  revalidatePath(`/deposit-invoices/${id}/preview`);
+  redirect(withSuccess(`/deposit-invoices/${id}/preview`, "Marked as received"));
 }

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { DeliveryOrderStatus, InvoiceStatus, Prisma } from "@/generated/prisma/client";
+import { round2 } from "@/lib/money";
 import {
   nextDocumentNumber,
   parseYearFromNumber,
@@ -32,10 +33,6 @@ const depositSchema = z.object({
   depositReceived: z.coerce.number().nonnegative().optional(),
   depositReceivedAt: z.string().trim().optional(),
 });
-
-function round2(n: number) {
-  return Math.round(n * 100) / 100;
-}
 
 function withSuccess(path: string, message: string) {
   return `${path}?success=${encodeURIComponent(message)}`;

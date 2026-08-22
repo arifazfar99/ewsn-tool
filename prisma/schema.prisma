@@ -94,6 +94,7 @@ enum DocType {
   DELIVERY_ORDER
   INVOICE
   DEPOSIT_INVOICE
+  RECEIPT
 }
 
 model Quotation {
@@ -160,8 +161,11 @@ model DepositInvoice {
   sourceQuotationId String?    @unique
   sourceQuotation   Quotation? @relation(fields: [sourceQuotationId], references: [id])
   issuedAt          DateTime?
+  receivedAt        DateTime?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+
+  receipt Receipt?
 }
 
 model DeliveryOrderLineItem {
@@ -197,6 +201,7 @@ model Invoice {
   updatedAt             DateTime       @updatedAt
 
   lineItems InvoiceLineItem[]
+  receipt   Receipt?
 }
 
 model InvoiceLineItem {
@@ -210,6 +215,30 @@ model InvoiceLineItem {
   unitPrice   Decimal @db.Decimal(12, 2)
   lineTotal   Decimal @db.Decimal(12, 2)
   sortOrder   Int     @default(0)
+}
+
+// Exactly one of sourceDepositInvoiceId/sourceInvoiceId must be set - enforced
+// at the app level (see app/(app)/receipts/actions.ts) and backed by a DB
+// CHECK constraint (num_nonnulls(...) = 1) added by hand in the
+// 20260822131957_add_receipt migration, since this schema language has no
+// native check-constraint attribute available here. Both FKs use
+// onDelete: Restrict (not the usual SetNull for an optional source relation)
+// specifically because SetNull would leave both columns null on delete,
+// which the CHECK constraint forbids - Restrict fails the delete cleanly
+// instead of hitting a raw constraint-violation error.
+model Receipt {
+  id                     String          @id @default(cuid())
+  number                 String?         @unique
+  year                   Int?
+  date                   DateTime        @default(now())
+  amount                 Decimal         @db.Decimal(12, 2)
+  sourceDepositInvoiceId String?         @unique
+  sourceDepositInvoice   DepositInvoice? @relation(fields: [sourceDepositInvoiceId], references: [id], onDelete: Restrict)
+  sourceInvoiceId        String?         @unique
+  sourceInvoice          Invoice?        @relation(fields: [sourceInvoiceId], references: [id], onDelete: Restrict)
+  issuedAt               DateTime?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
 }
 
 // Per-type, per-year sequence for numbering (Q-2026-0001 etc.), incremented

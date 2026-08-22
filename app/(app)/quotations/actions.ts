@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma, QuotationStatus } from "@/generated/prisma/client";
+import { round2 } from "@/lib/money";
 import {
   nextDocumentNumber,
   parseYearFromNumber,
@@ -31,9 +32,6 @@ const quotationSchema = z.object({
   lineItems: z.array(lineItemSchema).min(1),
 });
 
-function round2(n: number) {
-  return Math.round(n * 100) / 100;
-}
 
 function withSuccess(path: string, message: string) {
   return `${path}?success=${encodeURIComponent(message)}`;

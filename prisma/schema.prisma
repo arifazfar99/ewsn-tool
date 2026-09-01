@@ -209,6 +209,7 @@ model Invoice {
   depositReceived       Decimal?       @db.Decimal(12, 2)
   depositReceivedAt     DateTime?
   issuedAt              DateTime?
+  paidAt                DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 

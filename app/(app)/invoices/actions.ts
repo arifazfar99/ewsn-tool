@@ -343,7 +343,15 @@ export async function setInvoiceStatus(formData: FormData) {
 
   await prisma.invoice.update({
     where: { id },
-    data: { status: targetStatus },
+    // paidAt tracks the most recent time this invoice became PAID, used by
+    // the Pending Receipts view for oldest-first ordering and "days
+    // outstanding" - it deliberately doesn't reuse updatedAt (which unrelated
+    // edits like a deposit correction also bump). Cleared on any transition
+    // away from PAID so re-marking it PAID later starts a fresh period.
+    data: {
+      status: targetStatus,
+      paidAt: targetStatus === "PAID" ? new Date() : null,
+    },
   });
 
   revalidatePath("/invoices");

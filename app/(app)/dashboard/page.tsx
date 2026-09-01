@@ -10,6 +10,8 @@ export default async function DashboardPage() {
     acceptedQuotationCount,
     acceptedQuotations,
     unpaidInvoices,
+    pendingDepositInvoiceReceiptCount,
+    pendingReceiptInvoices,
     recentQuotations,
     recentDeliveryOrders,
     recentInvoices,
@@ -22,6 +24,13 @@ export default async function DashboardPage() {
     }),
     prisma.invoice.findMany({
       where: { status: "UNPAID" },
+      include: { lineItems: true },
+    }),
+    prisma.depositInvoice.count({
+      where: { receivedAt: { not: null }, receipt: null },
+    }),
+    prisma.invoice.findMany({
+      where: { status: "PAID", receipt: null },
       include: { lineItems: true },
     }),
     prisma.quotation.findMany({
@@ -61,6 +70,21 @@ export default async function DashboardPage() {
   );
 
   const netSales = round2(totalSales - totalCosts);
+
+  // A hand-typed depositReceived can already cover an invoice's full total
+  // with no formal DepositInvoice/Receipt pair required for that money -
+  // issueReceiptForInvoice blocks issuance once nothing is left, so such an
+  // invoice isn't counted as pending here either (matches app/(app)/receipts).
+  const pendingInvoiceReceiptCount = pendingReceiptInvoices.filter((inv) => {
+    const total = inv.lineItems.reduce(
+      (s, line) => s + line.lineTotal.toNumber(),
+      0
+    );
+    return round2(total - (inv.depositReceived?.toNumber() ?? 0)) > 0;
+  }).length;
+
+  const pendingReceiptCount =
+    pendingDepositInvoiceReceiptCount + pendingInvoiceReceiptCount;
 
   const recent = [
     ...recentQuotations.map((q) => ({
@@ -109,6 +133,11 @@ export default async function DashboardPage() {
     },
     { label: "Unpaid Invoices", value: unpaidInvoices.length },
     { label: "Unpaid Total", value: `RM ${unpaidTotal.toFixed(2)}` },
+    {
+      label: "Pending Receipts",
+      value: pendingReceiptCount,
+      danger: pendingReceiptCount > 0,
+    },
   ];
 
   return (

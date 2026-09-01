@@ -10,6 +10,7 @@ import {
   FileText,
   Truck,
   Receipt,
+  ReceiptText,
   UserCog,
   Menu,
   X,
@@ -22,6 +23,7 @@ const navLinks = [
   { href: "/quotations", label: "Quotations", icon: FileText },
   { href: "/delivery-orders", label: "Delivery Orders", icon: Truck },
   { href: "/invoices", label: "Invoices", icon: Receipt },
+  { href: "/receipts", label: "Receipts", icon: ReceiptText },
   { href: "/profile", label: "Profile", icon: UserCog },
 ];
 

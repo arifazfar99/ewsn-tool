@@ -41,12 +41,13 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const unpaidTotal = unpaidInvoices.reduce(
-    (sum, inv) =>
-      sum +
-      inv.lineItems.reduce((s, line) => s + line.lineTotal.toNumber(), 0),
-    0
-  );
+  const unpaidTotal = unpaidInvoices.reduce((sum, inv) => {
+    const invoiceTotal = inv.lineItems.reduce(
+      (s, line) => s + line.lineTotal.toNumber(),
+      0
+    );
+    return sum + (invoiceTotal - (inv.depositReceived?.toNumber() ?? 0));
+  }, 0);
 
   const totalSales = acceptedQuotations.reduce(
     (sum, q) =>

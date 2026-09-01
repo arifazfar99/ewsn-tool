@@ -292,7 +292,16 @@ export async function setQuotationStatus(formData: FormData) {
 
   await prisma.quotation.update({
     where: { id },
-    data: { status: targetStatus },
+    // acceptedAt is set once, the first time this quotation becomes
+    // ACCEPTED, for the Stage Tracker's "Accepted <date>" sub-label -
+    // ACCEPTED only ever transitions to VOIDED (never back to SENT/DRAFT
+    // per ALLOWED_TRANSITIONS), so it's never cleared once set.
+    data: {
+      status: targetStatus,
+      ...(targetStatus === QuotationStatus.ACCEPTED
+        ? { acceptedAt: new Date() }
+        : {}),
+    },
   });
 
   revalidatePath("/quotations");

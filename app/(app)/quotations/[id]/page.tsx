@@ -9,6 +9,7 @@ import QuotationForm from "../QuotationForm";
 import QuotationCostsManager from "../QuotationCostsManager";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
+import { DocumentStageTracker } from "@/components/DocumentStageTracker";
 
 const NEXT_STATUS_OPTIONS: Record<string, { value: string; label: string }[]> = {
   SENT: [
@@ -39,7 +40,13 @@ export default async function QuotationDetailPage({
       client: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
       costs: { orderBy: { sortOrder: "asc" } },
-      deliveryOrder: true,
+      deliveryOrder: {
+        include: {
+          invoice: {
+            include: { lineItems: true, receipt: true },
+          },
+        },
+      },
       depositInvoice: true,
     },
   });
@@ -137,6 +144,52 @@ export default async function QuotationDetailPage({
           </dd>
         </div>
       </dl>
+
+      <DocumentStageTracker
+        quotation={{
+          status: quotation.status,
+          acceptedAt: quotation.acceptedAt,
+          updatedAt: quotation.updatedAt,
+        }}
+        deliveryOrder={
+          quotation.deliveryOrder
+            ? {
+                status: quotation.deliveryOrder.status,
+                deliveredAt: quotation.deliveryOrder.deliveredAt,
+                hasInvoice: quotation.deliveryOrder.invoice != null,
+              }
+            : null
+        }
+        invoice={
+          quotation.deliveryOrder?.invoice
+            ? {
+                status: quotation.deliveryOrder.invoice.status,
+                paidAt: quotation.deliveryOrder.invoice.paidAt,
+                hasReceipt: quotation.deliveryOrder.invoice.receipt != null,
+                total: quotation.deliveryOrder.invoice.lineItems.reduce(
+                  (sum, line) => sum + line.lineTotal.toNumber(),
+                  0
+                ),
+                depositReceived:
+                  quotation.deliveryOrder.invoice.depositReceived?.toNumber() ??
+                  null,
+              }
+            : null
+        }
+        receipt={
+          quotation.deliveryOrder?.invoice?.receipt
+            ? { issuedAt: quotation.deliveryOrder.invoice.receipt.issuedAt }
+            : null
+        }
+        depositInvoice={
+          quotation.depositInvoice
+            ? {
+                amount: quotation.depositInvoice.amount.toNumber(),
+                receivedAt: quotation.depositInvoice.receivedAt,
+              }
+            : null
+        }
+      />
 
       <div className="overflow-x-auto">
       <table className="data-table mb-4">

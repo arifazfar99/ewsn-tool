@@ -285,7 +285,16 @@ export async function setDeliveryOrderStatus(formData: FormData) {
 
   await prisma.deliveryOrder.update({
     where: { id },
-    data: { status: targetStatus },
+    // deliveredAt is set once, the first time this DO becomes DELIVERED,
+    // for the Stage Tracker's "Delivered <date>" sub-label - DELIVERED
+    // only ever transitions to VOIDED (never back to DRAFT per
+    // ALLOWED_TRANSITIONS), so it's never cleared once set.
+    data: {
+      status: targetStatus,
+      ...(targetStatus === DeliveryOrderStatus.DELIVERED
+        ? { deliveredAt: new Date() }
+        : {}),
+    },
   });
 
   revalidatePath("/delivery-orders");

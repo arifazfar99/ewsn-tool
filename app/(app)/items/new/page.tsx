@@ -20,6 +20,11 @@ export default async function NewItemPage({
         </label>
 
         <label className="block">
+          <span className="field-label">Malay Name (optional)</span>
+          <input type="text" name="nameMs" className="field-input" />
+        </label>
+
+        <label className="block">
           <span className="field-label">Description</span>
           <textarea name="description" rows={3} className="field-input" />
         </label>

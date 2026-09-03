@@ -40,6 +40,16 @@ export default async function EditItemPage({
         </label>
 
         <label className="block">
+          <span className="field-label">Malay Name (optional)</span>
+          <input
+            type="text"
+            name="nameMs"
+            defaultValue={item.nameMs ?? ""}
+            className="field-input"
+          />
+        </label>
+
+        <label className="block">
           <span className="field-label">Description</span>
           <textarea
             name="description"

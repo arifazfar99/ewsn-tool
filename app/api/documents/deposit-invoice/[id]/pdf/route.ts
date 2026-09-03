@@ -61,6 +61,7 @@ export async function GET(
     ],
     title: null,
     notes: null,
+    language: quotation.language,
     footerLabel: "Bank Details",
     footerText: profile?.bankDetailsText ?? null,
     total: amount,

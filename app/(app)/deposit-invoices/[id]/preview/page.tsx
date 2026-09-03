@@ -62,6 +62,7 @@ export default async function DepositInvoicePreviewPage({
     ],
     title: null,
     notes: null,
+    language: quotation.language,
     footerLabel: "Bank Details",
     footerText: profile?.bankDetailsText ?? null,
     total: amount,

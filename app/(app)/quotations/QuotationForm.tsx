@@ -5,6 +5,7 @@ import DocumentLineItemsEditor, {
   type ItemOption,
   type LineItemRow,
 } from "@/components/DocumentLineItemsEditor";
+import type { DocumentLanguage } from "@/lib/pdf/labels";
 
 type TermsTemplateOption = {
   id: string;
@@ -22,6 +23,7 @@ type QuotationFormProps = {
   defaultDate?: string;
   defaultNumber?: string | null;
   defaultTitle?: string | null;
+  defaultLanguage?: DocumentLanguage;
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
   defaultTermsTemplateId?: string | null;
@@ -38,6 +40,7 @@ export default function QuotationForm({
   defaultDate,
   defaultNumber,
   defaultTitle,
+  defaultLanguage,
   defaultNotes,
   defaultLineItems,
   defaultTermsTemplateId,
@@ -47,6 +50,7 @@ export default function QuotationForm({
     defaultTermsTemplateId ?? ""
   );
   const [termsText, setTermsText] = useState(defaultTermsText ?? "");
+  const [language, setLanguage] = useState<DocumentLanguage>(defaultLanguage ?? "EN");
 
   function handleTermsTemplateChange(templateId: string) {
     const template = termsTemplates.find((t) => t.id === templateId);
@@ -58,16 +62,31 @@ export default function QuotationForm({
     <form action={action} className="max-w-3xl space-y-6">
       {quotationId && <input type="hidden" name="id" value={quotationId} />}
 
-      <label className="block">
-        <span className="field-label">Title</span>
-        <input
-          type="text"
-          name="title"
-          placeholder="e.g. Website Redesign - Phase 1"
-          defaultValue={defaultTitle ?? ""}
-          className="field-input"
-        />
-      </label>
+      <div className="grid grid-cols-2 gap-5">
+        <label className="block">
+          <span className="field-label">Title</span>
+          <input
+            type="text"
+            name="title"
+            placeholder="e.g. Website Redesign - Phase 1"
+            defaultValue={defaultTitle ?? ""}
+            className="field-input"
+          />
+        </label>
+
+        <label className="block">
+          <span className="field-label">Language</span>
+          <select
+            name="language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as DocumentLanguage)}
+            className="field-input"
+          >
+            <option value="EN">English</option>
+            <option value="MS">Bahasa Melayu</option>
+          </select>
+        </label>
+      </div>
 
       <div className="grid grid-cols-3 gap-5">
         <label className="block">
@@ -112,7 +131,11 @@ export default function QuotationForm({
         </label>
       </div>
 
-      <DocumentLineItemsEditor items={items} defaultLineItems={defaultLineItems} />
+      <DocumentLineItemsEditor
+        items={items}
+        defaultLineItems={defaultLineItems}
+        language={language}
+      />
 
       <label className="block">
         <span className="field-label">Notes</span>

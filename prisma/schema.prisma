@@ -55,6 +55,7 @@ model Client {
 model Item {
   id               String   @id @default(cuid())
   name             String
+  nameMs           String?
   description      String?
   unit             String
   defaultUnitPrice Decimal  @db.Decimal(12, 2)
@@ -74,6 +75,15 @@ enum QuotationStatus {
   REJECTED
   EXPIRED
   VOIDED
+}
+
+// Set only on Quotation, at creation; DeliveryOrder/Invoice receive it via a
+// one-line copy-forward in their convert* actions (never re-exposed as an
+// editable field on those two forms) - see Project Resources/project-plan.md
+// Phases 68-73 for the full bilingual-documents feature this backs.
+enum DocumentLanguage {
+  EN
+  MS
 }
 
 enum DeliveryOrderStatus {
@@ -98,22 +108,23 @@ enum DocType {
 }
 
 model Quotation {
-  id        String          @id @default(cuid())
-  number    String?         @unique
-  year      Int?
-  date      DateTime        @default(now())
-  clientId  String
-  client    Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  title     String?
-  notes     String?
-  status    QuotationStatus @default(DRAFT)
+  id              String                  @id @default(cuid())
+  number          String?                 @unique
+  year            Int?
+  date            DateTime                @default(now())
+  clientId        String
+  client          Client                  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  title           String?
+  notes           String?
+  status          QuotationStatus         @default(DRAFT)
+  language        DocumentLanguage        @default(EN)
   termsTemplateId String?
   termsTemplate   QuotationTermsTemplate? @relation(fields: [termsTemplateId], references: [id], onDelete: SetNull)
-  termsText String?
-  issuedAt  DateTime?
-  acceptedAt DateTime?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  termsText       String?
+  issuedAt        DateTime?
+  acceptedAt      DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
   lineItems      QuotationLineItem[]
   costs          QuotationCost[]
@@ -155,6 +166,7 @@ model DeliveryOrder {
   title             String?
   notes             String?
   status            DeliveryOrderStatus @default(DRAFT)
+  language          DocumentLanguage    @default(EN)
   sourceQuotationId String?             @unique
   sourceQuotation   Quotation?          @relation(fields: [sourceQuotationId], references: [id])
   issuedAt          DateTime?
@@ -196,24 +208,25 @@ model DeliveryOrderLineItem {
 }
 
 model Invoice {
-  id                    String         @id @default(cuid())
-  number                String?        @unique
+  id                    String           @id @default(cuid())
+  number                String?          @unique
   year                  Int?
-  date                  DateTime       @default(now())
+  date                  DateTime         @default(now())
   clientId              String
-  client                Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  client                Client           @relation(fields: [clientId], references: [id], onDelete: Restrict)
   title                 String?
   notes                 String?
-  status                InvoiceStatus  @default(DRAFT)
-  sourceDeliveryOrderId String?        @unique
-  sourceDeliveryOrder   DeliveryOrder? @relation(fields: [sourceDeliveryOrderId], references: [id])
+  status                InvoiceStatus    @default(DRAFT)
+  language              DocumentLanguage @default(EN)
+  sourceDeliveryOrderId String?          @unique
+  sourceDeliveryOrder   DeliveryOrder?   @relation(fields: [sourceDeliveryOrderId], references: [id])
   bankDetailsText       String?
-  depositReceived       Decimal?       @db.Decimal(12, 2)
+  depositReceived       Decimal?         @db.Decimal(12, 2)
   depositReceivedAt     DateTime?
   issuedAt              DateTime?
   paidAt                DateTime?
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
   lineItems InvoiceLineItem[]
   receipt   Receipt?

@@ -87,6 +87,7 @@ export async function convertQuotationToDeliveryOrder(formData: FormData) {
         date: new Date(),
         clientId: quotation.clientId,
         title: quotation.title,
+        language: quotation.language,
         notes: quotation.notes,
         sourceQuotationId: quotation.id,
         lineItems: {

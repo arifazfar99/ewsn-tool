@@ -33,6 +33,7 @@ export default async function NewQuotationPage({
         items={items.map((it) => ({
           id: it.id,
           name: it.name,
+          nameMs: it.nameMs,
           unit: it.unit,
           defaultUnitPrice: it.defaultUnitPrice.toNumber(),
         }))}

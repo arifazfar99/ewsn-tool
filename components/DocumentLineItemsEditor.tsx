@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import type { DocumentLanguage } from "@/lib/pdf/labels";
 
 export type ItemOption = {
   id: string;
   name: string;
+  nameMs?: string | null;
   unit: string;
   defaultUnitPrice: number;
 };
@@ -34,15 +36,46 @@ function lineTotal(row: LineItemRow): number {
 export default function DocumentLineItemsEditor({
   items,
   defaultLineItems,
+  language = "EN",
 }: {
   items: ItemOption[];
   defaultLineItems?: LineItemRow[];
+  language?: DocumentLanguage;
 }) {
   const [rows, setRows] = useState<LineItemRow[]>(
     defaultLineItems && defaultLineItems.length > 0
       ? defaultLineItems
       : [emptyRow()]
   );
+
+  // Resync already-picked rows when the document's language changes, so a
+  // row filled in under one language doesn't silently stay in that language
+  // after the user switches. Only rows whose description still exactly
+  // matches the item's catalog name (in either language) are touched - a
+  // description the user has hand-edited away from the catalog default is
+  // left alone. Adjusts state during render (comparing against the last
+  // seen language via a ref-like prevLanguage state) rather than a
+  // useEffect, matching this project's established pattern (see the
+  // toast-dedup / React Compiler note elsewhere in this repo's history).
+  const [prevLanguage, setPrevLanguage] = useState(language);
+  if (language !== prevLanguage) {
+    setPrevLanguage(language);
+    setRows((prev) =>
+      prev.map((row) => {
+        const item = items.find((it) => it.id === row.itemId);
+        if (!item) return row;
+        const catalogNames = [item.name, item.nameMs].filter(
+          (v): v is string => Boolean(v)
+        );
+        if (!catalogNames.includes(row.description)) return row;
+        const nextDescription =
+          language === "MS" ? item.nameMs || item.name : item.name;
+        return row.description === nextDescription
+          ? row
+          : { ...row, description: nextDescription };
+      })
+    );
+  }
 
   function updateRow(index: number, patch: Partial<LineItemRow>) {
     setRows((prev) =>
@@ -52,9 +85,14 @@ export default function DocumentLineItemsEditor({
 
   function handleItemChange(index: number, itemId: string) {
     const item = items.find((it) => it.id === itemId);
+    const description = item
+      ? language === "MS"
+        ? item.nameMs || item.name
+        : item.name
+      : "";
     updateRow(index, {
       itemId,
-      description: item ? item.name : "",
+      description,
       unitPrice: item ? item.defaultUnitPrice.toString() : "0",
     });
   }

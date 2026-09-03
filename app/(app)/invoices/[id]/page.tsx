@@ -67,6 +67,7 @@ export default async function InvoiceDetailPage({
           items={items.map((it) => ({
             id: it.id,
             name: it.name,
+            nameMs: it.nameMs,
             unit: it.unit,
             defaultUnitPrice: it.defaultUnitPrice.toNumber(),
           }))}
@@ -74,6 +75,7 @@ export default async function InvoiceDetailPage({
           defaultNumber={defaultNumber}
           defaultNotes={invoice.notes ?? ""}
           defaultBankDetailsText={invoice.bankDetailsText ?? ""}
+          language={invoice.language}
           defaultLineItems={invoice.lineItems.map((line) => ({
             itemId: line.itemId,
             description: line.description,

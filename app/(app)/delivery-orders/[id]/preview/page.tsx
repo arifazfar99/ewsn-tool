@@ -49,6 +49,7 @@ export default async function DeliveryOrderPreviewPage({
     lineItems,
     title: deliveryOrder.title,
     notes: deliveryOrder.notes,
+    language: deliveryOrder.language,
     footerLabel: null,
     footerText: null,
     total,

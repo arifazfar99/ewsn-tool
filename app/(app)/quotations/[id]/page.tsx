@@ -78,6 +78,7 @@ export default async function QuotationDetailPage({
           items={items.map((it) => ({
             id: it.id,
             name: it.name,
+            nameMs: it.nameMs,
             unit: it.unit,
             defaultUnitPrice: it.defaultUnitPrice.toNumber(),
           }))}
@@ -85,6 +86,7 @@ export default async function QuotationDetailPage({
           defaultDate={quotation.date.toISOString().slice(0, 10)}
           defaultNumber={defaultNumber}
           defaultTitle={quotation.title ?? ""}
+          defaultLanguage={quotation.language}
           defaultNotes={quotation.notes ?? ""}
           defaultLineItems={quotation.lineItems.map((line) => ({
             itemId: line.itemId,

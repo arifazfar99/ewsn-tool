@@ -49,7 +49,14 @@ export default async function ItemsPage({
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
-                <td>{item.name}</td>
+                <td>
+                  {item.name}
+                  {item.nameMs ? (
+                    <div className="text-xs text-ink-soft">{item.nameMs}</div>
+                  ) : (
+                    <div className="text-xs text-ink-soft/60">No Malay name</div>
+                  )}
+                </td>
                 <td className="text-ink-soft">{item.unit}</td>
                 <td className="num">
                   RM {item.defaultUnitPrice.toNumber().toFixed(2)}

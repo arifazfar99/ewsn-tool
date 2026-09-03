@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 
 const itemSchema = z.object({
   name: z.string().trim().min(1),
+  nameMs: z.string().trim().optional(),
   description: z.string().trim().optional(),
   unit: z.string().trim().min(1),
   defaultUnitPrice: z.coerce.number().nonnegative(),
@@ -20,6 +21,7 @@ function withSuccess(path: string, message: string) {
 function parseItemForm(formData: FormData) {
   return itemSchema.safeParse({
     name: formData.get("name")?.toString() ?? "",
+    nameMs: formData.get("nameMs")?.toString() || undefined,
     description: formData.get("description")?.toString() || undefined,
     unit: formData.get("unit")?.toString() ?? "",
     defaultUnitPrice: formData.get("defaultUnitPrice")?.toString() ?? "",

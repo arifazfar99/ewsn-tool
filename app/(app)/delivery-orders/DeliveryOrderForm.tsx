@@ -4,6 +4,7 @@ import DocumentLineItemsEditor, {
   type ItemOption,
   type LineItemRow,
 } from "@/components/DocumentLineItemsEditor";
+import type { DocumentLanguage } from "@/lib/pdf/labels";
 
 type DeliveryOrderFormProps = {
   action: (formData: FormData) => void;
@@ -14,6 +15,7 @@ type DeliveryOrderFormProps = {
   defaultNumber?: string | null;
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
+  language?: DocumentLanguage;
 };
 
 export default function DeliveryOrderForm({
@@ -25,6 +27,7 @@ export default function DeliveryOrderForm({
   defaultNumber,
   defaultNotes,
   defaultLineItems,
+  language,
 }: DeliveryOrderFormProps) {
   return (
     <form action={action} className="max-w-3xl space-y-6">
@@ -59,7 +62,11 @@ export default function DeliveryOrderForm({
         </div>
       </label>
 
-      <DocumentLineItemsEditor items={items} defaultLineItems={defaultLineItems} />
+      <DocumentLineItemsEditor
+        items={items}
+        defaultLineItems={defaultLineItems}
+        language={language}
+      />
 
       <label className="block">
         <span className="field-label">Notes</span>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import PdfPreviewClient from "@/components/PdfPreviewClient";
+import type { DocumentLanguage } from "@/lib/pdf/labels";
 
 export default async function ReceiptPreviewPage({
   params,
@@ -33,6 +34,7 @@ export default async function ReceiptPreviewPage({
     email: string | null;
   };
   let description: string;
+  let language: DocumentLanguage;
 
   if (receipt.sourceDepositInvoice?.sourceQuotation) {
     const quotation = receipt.sourceDepositInvoice.sourceQuotation;
@@ -40,9 +42,11 @@ export default async function ReceiptPreviewPage({
     description = `Deposit received for Quotation ${quotation.number}${
       quotation.title ? ` — ${quotation.title}` : ""
     } (Deposit Invoice ${receipt.sourceDepositInvoice.number})`;
+    language = quotation.language;
   } else if (receipt.sourceInvoice) {
     client = receipt.sourceInvoice.client;
     description = `Payment received for Invoice ${receipt.sourceInvoice.number}`;
+    language = receipt.sourceInvoice.language;
   } else {
     notFound();
   }
@@ -76,6 +80,7 @@ export default async function ReceiptPreviewPage({
     ],
     title: null,
     notes: null,
+    language,
     footerLabel: null,
     footerText: null,
     total: amount,

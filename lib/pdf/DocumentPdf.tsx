@@ -1,9 +1,17 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import {
+  type DocumentLanguage,
+  getChromeLabels,
+  translateDocTypeLabel,
+  translateFooterLabel,
+  dateLocale,
+} from "./labels";
 
 export type DocumentPdfProps = {
   docTypeLabel: string; // "QUOTATION" | "DELIVERY ORDER" | "INVOICE"
   number: string | null; // null = still a draft, show "DRAFT" instead
   date: Date;
+  language?: DocumentLanguage; // optional, defaults to "EN"
   business: {
     name: string;
     ssmNumber: string;
@@ -168,8 +176,8 @@ function money(value: number): string {
   return `RM ${value.toFixed(2)}`;
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-MY", {
+function formatDate(date: Date, language: DocumentLanguage): string {
+  return date.toLocaleDateString(dateLocale(language), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -180,6 +188,7 @@ export default function DocumentPdf({
   docTypeLabel,
   number,
   date,
+  language = "EN",
   business,
   client,
   lineItems,
@@ -192,6 +201,7 @@ export default function DocumentPdf({
   depositReceivedAt,
   showThankYou,
 }: DocumentPdfProps) {
+  const labels = getChromeLabels(language);
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -204,27 +214,27 @@ export default function DocumentPdf({
             )}
             <Text style={styles.businessName}>{business.name}</Text>
             {business.ssmNumber && (
-              <Text style={styles.muted}>SSM No: {business.ssmNumber}</Text>
+              <Text style={styles.muted}>{labels.ssmNo} {business.ssmNumber}</Text>
             )}
             <Text style={styles.muted}>{business.address}</Text>
             <Text style={styles.muted}>{business.phone}</Text>
             <Text style={styles.muted}>{business.email}</Text>
           </View>
           <View>
-            <Text style={styles.docLabel}>{docTypeLabel}</Text>
-            <Text style={styles.docMeta}>{number ?? "DRAFT"}</Text>
-            <Text style={styles.docMeta}>{formatDate(date)}</Text>
+            <Text style={styles.docLabel}>{translateDocTypeLabel(docTypeLabel, language)}</Text>
+            <Text style={styles.docMeta}>{number ?? labels.draft}</Text>
+            <Text style={styles.docMeta}>{formatDate(date, language)}</Text>
           </View>
         </View>
 
         {title && <Text style={styles.subjectText}>{title}</Text>}
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Bill To</Text>
+          <Text style={styles.sectionLabel}>{labels.billTo}</Text>
           <Text>{client.name}</Text>
           <Text style={styles.muted}>{client.address}</Text>
           {client.contactPerson && (
-            <Text style={styles.muted}>Attn: {client.contactPerson}</Text>
+            <Text style={styles.muted}>{labels.attn} {client.contactPerson}</Text>
           )}
           {client.phone && <Text style={styles.muted}>{client.phone}</Text>}
           {client.email && <Text style={styles.muted}>{client.email}</Text>}
@@ -232,10 +242,10 @@ export default function DocumentPdf({
 
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeaderRow]}>
-            <Text style={styles.colDescription}>Description</Text>
-            <Text style={styles.colQty}>Qty</Text>
-            <Text style={styles.colUnitPrice}>Unit Price</Text>
-            <Text style={styles.colLineTotal}>Line Total</Text>
+            <Text style={styles.colDescription}>{labels.description}</Text>
+            <Text style={styles.colQty}>{labels.qty}</Text>
+            <Text style={styles.colUnitPrice}>{labels.unitPrice}</Text>
+            <Text style={styles.colLineTotal}>{labels.lineTotal}</Text>
           </View>
           {lineItems.map((line, i) => (
             <View
@@ -252,26 +262,26 @@ export default function DocumentPdf({
 
         {depositReceived == null ? (
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{labels.total}</Text>
             <Text style={styles.totalValue}>{money(total)}</Text>
           </View>
         ) : (
           <>
             <View style={styles.totalRowTight}>
-              <Text style={styles.totalLabel}>Subtotal</Text>
+              <Text style={styles.totalLabel}>{labels.subtotal}</Text>
               <Text>{money(total)}</Text>
             </View>
             <View style={styles.totalRowTight}>
               <Text style={styles.totalLabel}>
-                Less: Deposit Received
+                {labels.lessDeposit}
                 {depositReceivedAt
-                  ? ` (${formatDate(new Date(depositReceivedAt))})`
+                  ? ` (${formatDate(new Date(depositReceivedAt), language)})`
                   : ""}
               </Text>
               <Text>{money(depositReceived)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Balance Due</Text>
+              <Text style={styles.totalLabel}>{labels.balanceDue}</Text>
               <Text style={styles.totalValue}>
                 {money(total - depositReceived)}
               </Text>
@@ -281,25 +291,25 @@ export default function DocumentPdf({
 
         {notes && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Notes</Text>
+            <Text style={styles.sectionLabel}>{labels.notes}</Text>
             <Text style={styles.notesText}>{notes}</Text>
           </View>
         )}
 
         {footerText && (
           <View style={styles.section}>
-            <Text style={styles.footerLabel}>{footerLabel ?? "Terms & Conditions"}</Text>
+            <Text style={styles.footerLabel}>
+              {translateFooterLabel(footerLabel ?? "Terms & Conditions", language)}
+            </Text>
             <Text style={styles.footerText}>{footerText}</Text>
           </View>
         )}
 
         <View style={styles.noteContainer}>
           {showThankYou && (
-            <Text style={styles.thankYouNote}>Thank you for your business!</Text>
+            <Text style={styles.thankYouNote}>{labels.thankYou}</Text>
           )}
-          <Text style={styles.generatedNote}>
-            This is a computer-generated document and does not require a signature.
-          </Text>
+          <Text style={styles.generatedNote}>{labels.generatedNote}</Text>
         </View>
       </Page>
     </Document>

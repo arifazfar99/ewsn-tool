@@ -104,6 +104,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
         date: new Date(),
         clientId: deliveryOrder.clientId,
         title: deliveryOrder.title,
+        language: deliveryOrder.language,
         notes: deliveryOrder.notes,
         sourceDeliveryOrderId: deliveryOrder.id,
         bankDetailsText: profile?.bankDetailsText ?? "",

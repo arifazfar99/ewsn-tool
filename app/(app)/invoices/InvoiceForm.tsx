@@ -4,6 +4,7 @@ import DocumentLineItemsEditor, {
   type ItemOption,
   type LineItemRow,
 } from "@/components/DocumentLineItemsEditor";
+import type { DocumentLanguage } from "@/lib/pdf/labels";
 
 type InvoiceFormProps = {
   action: (formData: FormData) => void;
@@ -15,6 +16,7 @@ type InvoiceFormProps = {
   defaultNotes?: string;
   defaultBankDetailsText?: string;
   defaultLineItems?: LineItemRow[];
+  language?: DocumentLanguage;
 };
 
 export default function InvoiceForm({
@@ -27,6 +29,7 @@ export default function InvoiceForm({
   defaultNotes,
   defaultBankDetailsText,
   defaultLineItems,
+  language,
 }: InvoiceFormProps) {
   return (
     <form action={action} className="max-w-3xl space-y-6">
@@ -61,7 +64,11 @@ export default function InvoiceForm({
         </div>
       </label>
 
-      <DocumentLineItemsEditor items={items} defaultLineItems={defaultLineItems} />
+      <DocumentLineItemsEditor
+        items={items}
+        defaultLineItems={defaultLineItems}
+        language={language}
+      />
 
       <label className="block">
         <span className="field-label">Notes</span>

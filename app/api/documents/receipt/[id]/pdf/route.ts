@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import DocumentPdf from "@/lib/pdf/DocumentPdf";
+import type { DocumentLanguage } from "@/lib/pdf/labels";
 
 export async function GET(
   _req: Request,
@@ -45,6 +46,7 @@ export async function GET(
     email: string | null;
   };
   let description: string;
+  let language: DocumentLanguage;
 
   if (receipt.sourceDepositInvoice?.sourceQuotation) {
     const quotation = receipt.sourceDepositInvoice.sourceQuotation;
@@ -52,9 +54,11 @@ export async function GET(
     description = `Deposit received for Quotation ${quotation.number}${
       quotation.title ? ` — ${quotation.title}` : ""
     } (Deposit Invoice ${receipt.sourceDepositInvoice.number})`;
+    language = quotation.language;
   } else if (receipt.sourceInvoice) {
     client = receipt.sourceInvoice.client;
     description = `Payment received for Invoice ${receipt.sourceInvoice.number}`;
+    language = receipt.sourceInvoice.language;
   } else {
     return new Response("Not found", { status: 404 });
   }
@@ -88,6 +92,7 @@ export async function GET(
     ],
     title: null,
     notes: null,
+    language,
     footerLabel: null,
     footerText: null,
     total: amount,

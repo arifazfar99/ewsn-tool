@@ -58,6 +58,7 @@ export async function GET(
     lineItems,
     title: quotation.title,
     notes: quotation.notes,
+    language: quotation.language,
     footerLabel: "Terms & Conditions",
     footerText: quotation.termsText,
     total,

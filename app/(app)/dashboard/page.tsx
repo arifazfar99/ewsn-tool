@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone, deliveryOrderTone, invoiceTone } from "@/lib/statusTone";
-import { round2 } from "@/lib/money";
+import { round2, invoiceBalanceDue } from "@/lib/money";
 
 export default async function DashboardPage() {
   const [
@@ -50,13 +50,11 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const unpaidTotal = unpaidInvoices.reduce((sum, inv) => {
-    const invoiceTotal = inv.lineItems.reduce(
-      (s, line) => s + line.lineTotal.toNumber(),
-      0
-    );
-    return sum + (invoiceTotal - (inv.depositReceived?.toNumber() ?? 0));
-  }, 0);
+  const unpaidTotal = unpaidInvoices.reduce(
+    (sum, inv) =>
+      sum + invoiceBalanceDue(inv.lineItems, inv.discountAmount, inv.depositReceived),
+    0
+  );
 
   const totalSales = acceptedQuotations.reduce(
     (sum, q) =>
@@ -75,13 +73,9 @@ export default async function DashboardPage() {
   // with no formal DepositInvoice/Receipt pair required for that money -
   // issueReceiptForInvoice blocks issuance once nothing is left, so such an
   // invoice isn't counted as pending here either (matches app/(app)/receipts).
-  const pendingInvoiceReceiptCount = pendingReceiptInvoices.filter((inv) => {
-    const total = inv.lineItems.reduce(
-      (s, line) => s + line.lineTotal.toNumber(),
-      0
-    );
-    return round2(total - (inv.depositReceived?.toNumber() ?? 0)) > 0;
-  }).length;
+  const pendingInvoiceReceiptCount = pendingReceiptInvoices.filter(
+    (inv) => invoiceBalanceDue(inv.lineItems, inv.discountAmount, inv.depositReceived) > 0
+  ).length;
 
   const pendingReceiptCount =
     pendingDepositInvoiceReceiptCount + pendingInvoiceReceiptCount;

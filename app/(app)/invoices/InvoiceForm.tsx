@@ -16,6 +16,8 @@ type InvoiceFormProps = {
   defaultNotes?: string;
   defaultBankDetailsText?: string;
   defaultLineItems?: LineItemRow[];
+  defaultDiscountLabel?: string;
+  defaultDiscountAmount?: string;
   language?: DocumentLanguage;
 };
 
@@ -29,6 +31,8 @@ export default function InvoiceForm({
   defaultNotes,
   defaultBankDetailsText,
   defaultLineItems,
+  defaultDiscountLabel,
+  defaultDiscountAmount,
   language,
 }: InvoiceFormProps) {
   return (
@@ -69,6 +73,34 @@ export default function InvoiceForm({
         defaultLineItems={defaultLineItems}
         language={language}
       />
+
+      <div className="space-y-3">
+        <span className="field-label">Discount (optional)</span>
+        <div className="grid grid-cols-2 gap-5">
+          <label className="block">
+            <span className="field-label">Label</span>
+            <input
+              type="text"
+              name="discountLabel"
+              placeholder="e.g. Item substitution - camera out of stock"
+              defaultValue={defaultDiscountLabel ?? ""}
+              className="field-input"
+            />
+          </label>
+
+          <label className="block">
+            <span className="field-label">Amount (RM)</span>
+            <input
+              type="number"
+              name="discountAmount"
+              step="0.01"
+              min="0"
+              defaultValue={defaultDiscountAmount ?? ""}
+              className="field-input"
+            />
+          </label>
+        </div>
+      </div>
 
       <label className="block">
         <span className="field-label">Notes</span>

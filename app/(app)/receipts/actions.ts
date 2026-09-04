@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { nextDocumentNumber } from "@/lib/numbering";
-import { round2 } from "@/lib/money";
+import { invoiceBalanceDue } from "@/lib/money";
 
 function withSuccess(path: string, message: string) {
   return `${path}?success=${encodeURIComponent(message)}`;
@@ -103,11 +103,11 @@ export async function issueReceiptForInvoice(formData: FormData) {
     );
   }
 
-  const total = invoice.lineItems.reduce(
-    (sum, line) => sum + line.lineTotal.toNumber(),
-    0
+  const amount = invoiceBalanceDue(
+    invoice.lineItems,
+    invoice.discountAmount,
+    invoice.depositReceived
   );
-  const amount = round2(total - (invoice.depositReceived?.toNumber() ?? 0));
   if (amount <= 0) {
     redirect(
       `/invoices/${invoiceId}?error=` +

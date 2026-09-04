@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { BadgeTone } from "@/lib/statusTone";
-import { round2 } from "@/lib/money";
+import { invoiceBalanceDue } from "@/lib/money";
 
 type PendingRow = {
   type: "Deposit Invoice" | "Invoice";
@@ -70,11 +70,7 @@ export default async function ReceiptsPage() {
     // invoice never shows a stale positive amount here.
     ...pendingInvoices
       .map((inv) => {
-        const total = inv.lineItems.reduce(
-          (sum, line) => sum + line.lineTotal.toNumber(),
-          0
-        );
-        const amount = round2(total - (inv.depositReceived?.toNumber() ?? 0));
+        const amount = invoiceBalanceDue(inv.lineItems, inv.discountAmount, inv.depositReceived);
         // paidAt is set on every transition into PAID (see setInvoiceStatus)
         // and cleared on any transition away from it, so it's always present
         // for a row this query can return; updatedAt is kept only as a

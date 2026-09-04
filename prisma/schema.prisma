@@ -221,6 +221,8 @@ model Invoice {
   sourceDeliveryOrderId String?          @unique
   sourceDeliveryOrder   DeliveryOrder?   @relation(fields: [sourceDeliveryOrderId], references: [id])
   bankDetailsText       String?
+  discountLabel         String?
+  discountAmount        Decimal?         @db.Decimal(12, 2)
   depositReceived       Decimal?         @db.Decimal(12, 2)
   depositReceivedAt     DateTime?
   issuedAt              DateTime?

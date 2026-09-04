@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { DeliveryOrderStatus, InvoiceStatus, Prisma } from "@/generated/prisma/client";
-import { round2 } from "@/lib/money";
+import { round2, sumLineItems } from "@/lib/money";
 import {
   nextDocumentNumber,
   parseYearFromNumber,
@@ -21,13 +21,36 @@ const lineItemSchema = z.object({
   unitPrice: z.coerce.number().nonnegative(),
 });
 
-const invoiceSchema = z.object({
-  number: z.string().trim().optional(),
-  title: z.string().trim().optional(),
-  notes: z.string().trim().optional(),
-  bankDetailsText: z.string().trim().optional(),
-  lineItems: z.array(lineItemSchema).min(1),
-});
+const invoiceSchema = z
+  .object({
+    number: z.string().trim().optional(),
+    title: z.string().trim().optional(),
+    notes: z.string().trim().optional(),
+    bankDetailsText: z.string().trim().optional(),
+    discountLabel: z.string().trim().optional(),
+    discountAmount: z.coerce.number().nonnegative().optional(),
+    lineItems: z.array(lineItemSchema).min(1),
+  })
+  .superRefine((data, ctx) => {
+    if (data.discountAmount == null) return;
+    if (!data.discountLabel) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["discountLabel"],
+        message: "A discount amount needs a label explaining it.",
+      });
+    }
+    const subtotal = sumLineItems(
+      data.lineItems.map((line) => ({ lineTotal: round2(line.quantity * line.unitPrice) }))
+    );
+    if (data.discountAmount > subtotal) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["discountAmount"],
+        message: "Discount can't exceed the line items' subtotal.",
+      });
+    }
+  });
 
 const depositSchema = z.object({
   depositReceived: z.coerce.number().nonnegative().optional(),
@@ -52,6 +75,8 @@ function parseInvoiceForm(formData: FormData) {
     title: formData.get("title")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     bankDetailsText: formData.get("bankDetailsText")?.toString() || undefined,
+    discountLabel: formData.get("discountLabel")?.toString() || undefined,
+    discountAmount: formData.get("discountAmount")?.toString() || undefined,
     lineItems: lineItemsJson,
   });
 }
@@ -143,11 +168,14 @@ export async function saveInvoice(formData: FormData) {
   if (!parsed.success) {
     redirect(
       `/invoices/${id}?error=` +
-        encodeURIComponent("At least one valid line item is required.")
+        encodeURIComponent(
+          parsed.error.issues[0]?.message ?? "At least one valid line item is required."
+        )
     );
   }
 
-  const { number, title, notes, bankDetailsText, lineItems } = parsed.data;
+  const { number, title, notes, bankDetailsText, discountLabel, discountAmount, lineItems } =
+    parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -185,6 +213,11 @@ export async function saveInvoice(formData: FormData) {
           title: title || null,
           notes: notes ?? null,
           bankDetailsText: bankDetailsText ?? "",
+          // A 0-amount discount is a no-op - normalize both fields to null
+          // rather than storing a "Discount: -RM 0.00" line that renders
+          // everywhere a real discount would.
+          discountLabel: discountAmount ? discountLabel || null : null,
+          discountAmount: discountAmount ? round2(discountAmount) : null,
           lineItems: { create: preparedLines },
         },
       });

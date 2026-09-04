@@ -38,6 +38,8 @@ export type DocumentPdfProps = {
   footerLabel: string | null;
   footerText: string | null;
   total: number;
+  discountLabel?: string | null;
+  discountAmount?: number | null;
   depositReceived?: number | null;
   depositReceivedAt?: Date | string | null;
   showThankYou?: boolean; // Invoice/Receipt only - a payment context, unlike Quotation/DO/DepositInvoice
@@ -137,6 +139,11 @@ const styles = StyleSheet.create({
   totalValue: {
     fontWeight: 700,
   },
+  discountReason: {
+    textAlign: "right",
+    fontSize: 10,
+    marginBottom: 6,
+  },
   notesText: {
     color: "#3f3f46",
   },
@@ -197,10 +204,13 @@ export default function DocumentPdf({
   footerLabel,
   footerText,
   total,
+  discountLabel,
+  discountAmount,
   depositReceived,
   depositReceivedAt,
   showThankYou,
 }: DocumentPdfProps) {
+  const hasDiscount = discountAmount != null;
   const labels = getChromeLabels(language);
   return (
     <Document>
@@ -260,7 +270,7 @@ export default function DocumentPdf({
           ))}
         </View>
 
-        {depositReceived == null ? (
+        {!hasDiscount && depositReceived == null ? (
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{labels.total}</Text>
             <Text style={styles.totalValue}>{money(total)}</Text>
@@ -271,19 +281,36 @@ export default function DocumentPdf({
               <Text style={styles.totalLabel}>{labels.subtotal}</Text>
               <Text>{money(total)}</Text>
             </View>
-            <View style={styles.totalRowTight}>
-              <Text style={styles.totalLabel}>
-                {labels.lessDeposit}
-                {depositReceivedAt
-                  ? ` (${formatDate(new Date(depositReceivedAt), language)})`
-                  : ""}
-              </Text>
-              <Text>{money(depositReceived)}</Text>
-            </View>
+            {hasDiscount && (
+              <>
+                <View style={styles.totalRowTight}>
+                  <Text style={styles.totalLabel}>{labels.discount}</Text>
+                  <Text>-{money(discountAmount)}</Text>
+                </View>
+                {discountLabel && (
+                  <Text style={[styles.muted, styles.discountReason]}>
+                    {discountLabel}
+                  </Text>
+                )}
+              </>
+            )}
+            {depositReceived != null && (
+              <View style={styles.totalRowTight}>
+                <Text style={styles.totalLabel}>
+                  {labels.lessDeposit}
+                  {depositReceivedAt
+                    ? ` (${formatDate(new Date(depositReceivedAt), language)})`
+                    : ""}
+                </Text>
+                <Text>{money(depositReceived)}</Text>
+              </View>
+            )}
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{labels.balanceDue}</Text>
+              <Text style={styles.totalLabel}>
+                {depositReceived != null ? labels.balanceDue : labels.total}
+              </Text>
               <Text style={styles.totalValue}>
-                {money(total - depositReceived)}
+                {money(total - (discountAmount ?? 0) - (depositReceived ?? 0))}
               </Text>
             </View>
           </>

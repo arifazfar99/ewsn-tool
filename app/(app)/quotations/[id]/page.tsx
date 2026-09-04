@@ -172,6 +172,8 @@ export default async function QuotationDetailPage({
                   (sum, line) => sum + line.lineTotal.toNumber(),
                   0
                 ),
+                discountAmount:
+                  quotation.deliveryOrder.invoice.discountAmount?.toNumber() ?? null,
                 depositReceived:
                   quotation.deliveryOrder.invoice.depositReceived?.toNumber() ??
                   null,

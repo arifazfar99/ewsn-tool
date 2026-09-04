@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { previewNextDocumentNumber } from "@/lib/numbering";
+import { invoiceBalanceDue } from "@/lib/money";
 import { saveInvoice, setInvoiceStatus } from "../actions";
 import { issueReceiptForInvoice } from "@/app/(app)/receipts/actions";
 import InvoiceForm from "../InvoiceForm";
@@ -75,6 +76,8 @@ export default async function InvoiceDetailPage({
           defaultNumber={defaultNumber}
           defaultNotes={invoice.notes ?? ""}
           defaultBankDetailsText={invoice.bankDetailsText ?? ""}
+          defaultDiscountLabel={invoice.discountLabel ?? ""}
+          defaultDiscountAmount={invoice.discountAmount?.toNumber().toString() ?? ""}
           language={invoice.language}
           defaultLineItems={invoice.lineItems.map((line) => ({
             itemId: line.itemId,
@@ -117,6 +120,12 @@ export default async function InvoiceDetailPage({
   const total = invoice.lineItems.reduce(
     (sum, line) => sum + line.lineTotal.toNumber(),
     0
+  );
+  const hasDiscount = invoice.discountAmount != null;
+  const balanceDue = invoiceBalanceDue(
+    invoice.lineItems,
+    invoice.discountAmount,
+    invoice.depositReceived
   );
   const transitions = NEXT_STATUS_OPTIONS[invoice.status] ?? [];
 
@@ -182,9 +191,25 @@ export default async function InvoiceDetailPage({
       </table>
       </div>
 
-      <p className="mb-6 text-right text-sm font-medium text-ink">
-        Total: <span className="font-mono">RM {total.toFixed(2)}</span>
+      <p className={`text-right text-sm font-medium text-ink ${hasDiscount ? "mb-2" : "mb-6"}`}>
+        {hasDiscount ? "Subtotal" : "Total"}:{" "}
+        <span className="font-mono">RM {total.toFixed(2)}</span>
       </p>
+
+      {hasDiscount && (
+        <p className="mb-2 text-right text-sm text-ink-soft">
+          Discount — {invoice.discountLabel}:{" "}
+          <span className="font-mono">
+            -RM {invoice.discountAmount!.toNumber().toFixed(2)}
+          </span>
+        </p>
+      )}
+
+      {hasDiscount && invoice.depositReceived == null && (
+        <p className="mb-6 text-right text-sm font-medium text-ink">
+          Total: <span className="font-mono">RM {balanceDue.toFixed(2)}</span>
+        </p>
+      )}
 
       {invoice.notes && (
         <div className="mb-6">
@@ -211,8 +236,7 @@ export default async function InvoiceDetailPage({
               ` on ${invoice.depositReceivedAt.toLocaleDateString("en-MY")}`}
           </p>
           <p className="text-sm font-medium text-ink">
-            Balance Due: RM{" "}
-            {(total - invoice.depositReceived.toNumber()).toFixed(2)}
+            Balance Due: RM {balanceDue.toFixed(2)}
           </p>
         </div>
       )}

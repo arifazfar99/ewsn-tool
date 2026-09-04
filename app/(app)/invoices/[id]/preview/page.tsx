@@ -53,6 +53,8 @@ export default async function InvoicePreviewPage({
     footerLabel: "Bank Details",
     footerText: invoice.bankDetailsText,
     total,
+    discountLabel: invoice.discountLabel,
+    discountAmount: invoice.discountAmount?.toNumber() ?? null,
     depositReceived: invoice.depositReceived?.toNumber() ?? null,
     depositReceivedAt: invoice.depositReceivedAt ?? null,
     showThankYou: true,

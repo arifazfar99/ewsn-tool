@@ -24,6 +24,7 @@ export type DocumentStageTrackerProps = {
     paidAt: Date | null;
     hasReceipt: boolean;
     total: number;
+    discountAmount: number | null;
     depositReceived: number | null;
   } | null;
   receipt: { issuedAt: Date | null } | null;
@@ -136,7 +137,7 @@ export function DocumentStageTracker(props: DocumentStageTrackerProps) {
   // (not invoice.depositReceived alone) so the two figures never disagree.
   const balanceDue =
     invoice && invoice.status === "UNPAID"
-      ? round2(invoice.total - (depositAmount ?? 0))
+      ? round2(invoice.total - (invoice.discountAmount ?? 0) - (depositAmount ?? 0))
       : null;
 
   return (

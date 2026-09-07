@@ -186,18 +186,22 @@ export async function saveInvoice(formData: FormData) {
   }));
   const year = parseYearFromNumber(number);
 
+  // Content stays editable after issuance — the one exception is once a
+  // Receipt exists, since its amount is fixed at issuance and would
+  // silently disagree with a later-edited invoice (same reasoning as the
+  // deposit lock in setInvoiceDeposit's callers).
   const existing = await prisma.invoice.findUnique({
     where: { id },
-    select: { issuedAt: true },
+    select: { receipt: { select: { id: true } } },
   });
   if (!existing) {
     throw new Error("Invoice not found");
   }
-  if (existing.issuedAt) {
+  if (existing.receipt) {
     redirect(
       `/invoices/${id}?error=` +
         encodeURIComponent(
-          "This invoice is already issued and can no longer be edited."
+          "A receipt has already been issued for this invoice — its content is now locked."
         )
     );
   }

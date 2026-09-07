@@ -44,7 +44,13 @@ export default async function InvoiceDetailPage({
   });
   if (!invoice) notFound();
 
-  if (!invoice.issuedAt) {
+  const transitions = NEXT_STATUS_OPTIONS[invoice.status] ?? [];
+
+  // Content stays editable after issuance — the one exception is once a
+  // Receipt exists, since its amount is fixed at issuance and would
+  // silently disagree with a later-edited invoice, same reasoning as the
+  // deposit lock further down this page.
+  if (!invoice.receipt) {
     const [items, defaultNumber] = await Promise.all([
       prisma.item.findMany({
         where: { archived: false },
@@ -56,10 +62,17 @@ export default async function InvoiceDetailPage({
     ]);
 
     return (
-      <div>
-        <h1 className="page-title mb-6">Edit Invoice</h1>
+      <div className="max-w-3xl">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="page-title">
+            {invoice.issuedAt ? `Invoice ${invoice.number}` : "Edit Invoice"}
+          </h1>
+          {invoice.issuedAt && (
+            <StatusBadge label={invoice.status} tone={invoiceTone[invoice.status]} />
+          )}
+        </div>
 
-        {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
+        {error && <p className="alert-danger mb-4">{error}</p>}
 
         <InvoiceForm
           action={saveInvoice}
@@ -97,7 +110,7 @@ export default async function InvoiceDetailPage({
           }
         />
 
-        <div className="mt-8 max-w-3xl space-y-2">
+        <div className="mt-8 space-y-2">
           {invoice.sourceDeliveryOrder && (
             <p className="text-sm text-ink-soft">
               From delivery order{" "}
@@ -110,9 +123,39 @@ export default async function InvoiceDetailPage({
             </p>
           )}
           <Link href={`/invoices/${invoice.id}/preview`} className="link">
-            Preview / Generate PDF
+            {invoice.issuedAt ? "View / Download PDF" : "Preview / Generate PDF"}
           </Link>
         </div>
+
+        {invoice.status === "PAID" && (
+          <form action={issueReceiptForInvoice} className="my-6">
+            <input type="hidden" name="invoiceId" value={invoice.id} />
+            <button type="submit" className="btn-secondary">
+              Issue Receipt
+            </button>
+          </form>
+        )}
+
+        {transitions.length > 0 && (
+          <form
+            action={setInvoiceStatus}
+            className="flex flex-wrap items-center gap-2 border-t border-border pt-6 mt-6"
+          >
+            <input type="hidden" name="id" value={invoice.id} />
+            <span className="eyebrow mr-2">Change status:</span>
+            {transitions.map((t) => (
+              <button
+                key={t.value}
+                type="submit"
+                name="status"
+                value={t.value}
+                className="btn-secondary"
+              >
+                {t.label}
+              </button>
+            ))}
+          </form>
+        )}
       </div>
     );
   }
@@ -127,7 +170,6 @@ export default async function InvoiceDetailPage({
     invoice.discountAmount,
     invoice.depositReceived
   );
-  const transitions = NEXT_STATUS_OPTIONS[invoice.status] ?? [];
 
   return (
     <div className="max-w-3xl">
@@ -248,42 +290,20 @@ export default async function InvoiceDetailPage({
         View / Download PDF
       </Link>
 
-      {invoice.receipt ? (
-        // A Receipt's amount is computed once at issuance from the deposit
-        // recorded at that moment - editing the deposit afterward would make
-        // the already-issued receipt (and its PDF) silently disagree with
-        // this page, so the deposit is locked once a receipt exists.
-        <p className="max-w-3xl border-t border-border pt-6 text-sm text-ink-soft">
-          Deposit locked - a receipt has already been issued for this invoice.
-        </p>
-      ) : (
-        <DepositForm
-          invoiceId={invoice.id}
-          defaultDepositReceived={invoice.depositReceived?.toNumber().toString() ?? ""}
-          defaultDepositReceivedAt={
-            invoice.depositReceivedAt
-              ? invoice.depositReceivedAt.toISOString().slice(0, 10)
-              : ""
-          }
-        />
-      )}
+      {/* A Receipt's amount is computed once at issuance from the deposit
+          and line items at that moment - editing either afterward would make
+          the already-issued receipt (and its PDF) silently disagree with
+          this page, so both are locked once a receipt exists. */}
+      <p className="max-w-3xl border-t border-border pt-6 text-sm text-ink-soft">
+        Content and deposit locked - a receipt has already been issued for this invoice.
+      </p>
 
-      {invoice.status === "PAID" &&
-        (invoice.receipt ? (
-          <Link
-            href={`/receipts/${invoice.receipt.id}/preview`}
-            className="link my-6 block"
-          >
-            View Receipt →
-          </Link>
-        ) : (
-          <form action={issueReceiptForInvoice} className="my-6">
-            <input type="hidden" name="invoiceId" value={invoice.id} />
-            <button type="submit" className="btn-secondary">
-              Issue Receipt
-            </button>
-          </form>
-        ))}
+      <Link
+        href={`/receipts/${invoice.receipt!.id}/preview`}
+        className="link my-6 block"
+      >
+        View Receipt →
+      </Link>
 
       {transitions.length > 0 && (
         <form

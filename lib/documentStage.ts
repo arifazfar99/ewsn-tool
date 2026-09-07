@@ -95,6 +95,16 @@ export function buildStages(props: StageInput): Stage[] {
   return [stage1, stage2, stage3, stage4];
 }
 
+// A job is "active" once it has a real next step waiting on someone, and
+// hasn't gone dead anywhere along the chain (a voided Delivery Order or
+// Invoice kills the job even if the Quotation itself is still ACCEPTED).
+export function isActive(stages: Stage[]): boolean {
+  return (
+    stages.some((s) => s.state === "active") &&
+    !stages.some((s) => s.state === "negative")
+  );
+}
+
 export function statusLine(stages: Stage[]): string {
   const current = stages.find((s) => s.state === "active" || s.state === "negative");
   if (!current) return "Paid in full - receipt issued.";

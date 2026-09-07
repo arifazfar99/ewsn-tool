@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { StatusBadge } from "@/components/StatusBadge";
-import { quotationTone, deliveryOrderTone, invoiceTone } from "@/lib/statusTone";
 import { round2, invoiceBalanceDue } from "@/lib/money";
+import { buildStages, statusLine, isActive } from "@/lib/documentStage";
 
 export default async function DashboardPage() {
   const [
@@ -12,9 +11,7 @@ export default async function DashboardPage() {
     unpaidInvoices,
     pendingDepositInvoiceReceiptCount,
     pendingReceiptInvoices,
-    recentQuotations,
-    recentDeliveryOrders,
-    recentInvoices,
+    activeQuotationCandidates,
   ] = await Promise.all([
     prisma.quotation.count(),
     prisma.quotation.count({ where: { status: "ACCEPTED" } }),
@@ -33,22 +30,56 @@ export default async function DashboardPage() {
       where: { status: "PAID", receipt: null },
       include: { lineItems: true },
     }),
+    // REJECTED/EXPIRED/VOIDED quotations can never be active regardless of
+    // what's downstream, so they're excluded here rather than relying on
+    // isActive() to filter every row after the fact.
     prisma.quotation.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: { client: true },
-    }),
-    prisma.deliveryOrder.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: { client: true },
-    }),
-    prisma.invoice.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: { client: true },
+      where: { status: { notIn: ["REJECTED", "EXPIRED", "VOIDED"] } },
+      include: {
+        client: true,
+        lineItems: true,
+        deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+      },
+      orderBy: { date: "asc" },
     }),
   ]);
+
+  // Oldest first - a job that's been sitting half-finished the longest is
+  // the one most worth Araz noticing, same reasoning as Pending Receipts.
+  const activeQuotations = activeQuotationCandidates
+    .map((q) => {
+      const stages = buildStages({
+        quotation: { status: q.status, acceptedAt: q.acceptedAt },
+        deliveryOrder: q.deliveryOrder
+          ? {
+              status: q.deliveryOrder.status,
+              deliveredAt: q.deliveryOrder.deliveredAt,
+              hasInvoice: q.deliveryOrder.invoice != null,
+            }
+          : null,
+        invoice: q.deliveryOrder?.invoice
+          ? {
+              status: q.deliveryOrder.invoice.status,
+              paidAt: q.deliveryOrder.invoice.paidAt,
+              hasReceipt: q.deliveryOrder.invoice.receipt != null,
+            }
+          : null,
+        receipt: q.deliveryOrder?.invoice?.receipt
+          ? { issuedAt: q.deliveryOrder.invoice.receipt.issuedAt }
+          : null,
+      });
+      return {
+        id: q.id,
+        number: q.number,
+        client: q.client.name,
+        title: q.title,
+        date: q.date,
+        total: q.lineItems.reduce((sum, line) => sum + line.lineTotal.toNumber(), 0),
+        progress: statusLine(stages),
+        active: isActive(stages),
+      };
+    })
+    .filter((q) => q.active);
 
   const unpaidTotal = unpaidInvoices.reduce(
     (sum, inv) =>
@@ -79,41 +110,6 @@ export default async function DashboardPage() {
 
   const pendingReceiptCount =
     pendingDepositInvoiceReceiptCount + pendingInvoiceReceiptCount;
-
-  const recent = [
-    ...recentQuotations.map((q) => ({
-      type: "Quotation",
-      number: q.number,
-      client: q.client.name,
-      title: q.title,
-      status: q.status,
-      tone: quotationTone[q.status],
-      createdAt: q.createdAt,
-      href: `/quotations/${q.id}`,
-    })),
-    ...recentDeliveryOrders.map((d) => ({
-      type: "Delivery Order",
-      number: d.number,
-      client: d.client.name,
-      title: d.title,
-      status: d.status,
-      tone: deliveryOrderTone[d.status],
-      createdAt: d.createdAt,
-      href: `/delivery-orders/${d.id}`,
-    })),
-    ...recentInvoices.map((inv) => ({
-      type: "Invoice",
-      number: inv.number,
-      client: inv.client.name,
-      title: inv.title,
-      status: inv.status,
-      tone: invoiceTone[inv.status],
-      createdAt: inv.createdAt,
-      href: `/invoices/${inv.id}`,
-    })),
-  ]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 10);
 
   const stats = [
     { label: "Quotations", value: quotationCount },
@@ -154,35 +150,38 @@ export default async function DashboardPage() {
       </div>
 
       <h2 className="mb-3 text-base font-semibold text-ink">
-        Recent Documents
+        Active Quotations
       </h2>
-      {recent.length === 0 ? (
-        <p className="text-sm text-ink-soft">No documents yet.</p>
+      {activeQuotations.length === 0 ? (
+        <p className="text-sm text-ink-soft">Nothing currently in progress.</p>
       ) : (
         <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Type</th>
               <th>Number</th>
               <th>Client</th>
-              <th>Title</th>
-              <th>Status</th>
+              <th>Date</th>
+              <th>Progress</th>
+              <th>Total</th>
               <th />
             </tr>
           </thead>
           <tbody>
-            {recent.map((doc) => (
-              <tr key={doc.href}>
-                <td className="text-ink-soft">{doc.type}</td>
-                <td className="num">{doc.number ?? "DRAFT"}</td>
-                <td className="text-ink-soft">{doc.client}</td>
-                <td className="text-ink-soft">{doc.title ?? "—"}</td>
-                <td>
-                  <StatusBadge label={doc.status} tone={doc.tone} />
+            {activeQuotations.map((q) => (
+              <tr key={q.id}>
+                <td className="num">{q.number ?? "DRAFT"}</td>
+                <td className="text-ink-soft">
+                  {q.client}
+                  {q.title && (
+                    <span className="block text-xs text-ink-soft">{q.title}</span>
+                  )}
                 </td>
+                <td className="text-ink-soft">{q.date.toLocaleDateString("en-MY")}</td>
+                <td className="text-ink-soft">{q.progress}</td>
+                <td className="num">RM {q.total.toFixed(2)}</td>
                 <td className="text-right">
-                  <Link href={doc.href} className="link">
+                  <Link href={`/quotations/${q.id}`} className="link">
                     View
                   </Link>
                 </td>

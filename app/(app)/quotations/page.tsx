@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { QuotationStatus, Prisma } from "@/generated/prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
+import { buildStages, statusLine } from "@/lib/documentStage";
 
 export default async function QuotationsPage({
   searchParams,
@@ -28,7 +29,11 @@ export default async function QuotationsPage({
   const [quotations, clients] = await Promise.all([
     prisma.quotation.findMany({
       where,
-      include: { client: true, lineItems: true },
+      include: {
+        client: true,
+        lineItems: true,
+        deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.client.findMany({ orderBy: { name: "asc" } }),
@@ -119,6 +124,7 @@ export default async function QuotationsPage({
               <th>Client</th>
               <th>Date</th>
               <th>Status</th>
+              <th>Progress</th>
               <th>Total</th>
               <th />
             </tr>
@@ -128,6 +134,33 @@ export default async function QuotationsPage({
               const total = q.lineItems.reduce(
                 (sum, line) => sum + line.lineTotal.toNumber(),
                 0
+              );
+              // Status only tells you DRAFT/SENT/ACCEPTED/etc, which stays
+              // "ACCEPTED" forever whether the job just started or was fully
+              // paid and receipted months ago - Progress reuses the same
+              // stage logic the Quotation detail page's tracker uses so both
+              // views agree on what "currently active" means.
+              const progress = statusLine(
+                buildStages({
+                  quotation: { status: q.status, acceptedAt: q.acceptedAt },
+                  deliveryOrder: q.deliveryOrder
+                    ? {
+                        status: q.deliveryOrder.status,
+                        deliveredAt: q.deliveryOrder.deliveredAt,
+                        hasInvoice: q.deliveryOrder.invoice != null,
+                      }
+                    : null,
+                  invoice: q.deliveryOrder?.invoice
+                    ? {
+                        status: q.deliveryOrder.invoice.status,
+                        paidAt: q.deliveryOrder.invoice.paidAt,
+                        hasReceipt: q.deliveryOrder.invoice.receipt != null,
+                      }
+                    : null,
+                  receipt: q.deliveryOrder?.invoice?.receipt
+                    ? { issuedAt: q.deliveryOrder.invoice.receipt.issuedAt }
+                    : null,
+                })
               );
               return (
                 <tr key={q.id}>
@@ -147,6 +180,7 @@ export default async function QuotationsPage({
                       tone={quotationTone[q.status]}
                     />
                   </td>
+                  <td className="text-sm text-ink-soft">{progress}</td>
                   <td className="num">RM {total.toFixed(2)}</td>
                   <td className="text-right">
                     <Link href={`/quotations/${q.id}`} className="link">

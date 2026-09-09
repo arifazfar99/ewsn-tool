@@ -29,6 +29,7 @@ export type DocumentPdfProps = {
   };
   lineItems: {
     description: string;
+    unit?: string;
     quantity: number;
     unitPrice: number;
     lineTotal: number;
@@ -263,7 +264,9 @@ export default function DocumentPdf({
               style={i === lineItems.length - 1 ? { flexDirection: "row" } : styles.tableRow}
             >
               <Text style={styles.colDescription}>{line.description}</Text>
-              <Text style={styles.colQty}>{line.quantity}</Text>
+              <Text style={styles.colQty}>
+                {line.unit ? `${line.quantity} ${line.unit}` : line.quantity}
+              </Text>
               <Text style={styles.colUnitPrice}>{money(line.unitPrice)}</Text>
               <Text style={styles.colLineTotal}>{money(line.lineTotal)}</Text>
             </View>

@@ -30,6 +30,7 @@ export async function GET(
 
   const lineItems = quotation.lineItems.map((line) => ({
     description: line.description,
+    unit: line.unit,
     quantity: line.quantity.toNumber(),
     unitPrice: line.unitPrice.toNumber(),
     lineTotal: line.lineTotal.toNumber(),

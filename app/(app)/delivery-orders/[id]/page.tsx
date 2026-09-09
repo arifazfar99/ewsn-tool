@@ -73,6 +73,7 @@ export default async function DeliveryOrderDetailPage({
           defaultLineItems={deliveryOrder.lineItems.map((line) => ({
             itemId: line.itemId,
             description: line.description,
+            unit: line.unit,
             quantity: line.quantity.toNumber().toString(),
             unitPrice: line.unitPrice.toNumber().toString(),
           }))}
@@ -165,7 +166,11 @@ export default async function DeliveryOrderDetailPage({
           {deliveryOrder.lineItems.map((line) => (
             <tr key={line.id}>
               <td>{line.description}</td>
-              <td className="num">{line.quantity.toNumber()}</td>
+              <td className="num">
+                {line.unit
+                  ? `${line.quantity.toNumber()} ${line.unit}`
+                  : line.quantity.toNumber()}
+              </td>
               <td className="num">
                 RM {line.unitPrice.toNumber().toFixed(2)}
               </td>

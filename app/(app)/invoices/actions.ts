@@ -17,6 +17,7 @@ import {
 const lineItemSchema = z.object({
   itemId: z.string().trim().min(1),
   description: z.string().trim().min(1),
+  unit: z.string().trim().default(""),
   quantity: z.coerce.number().positive(),
   unitPrice: z.coerce.number().nonnegative(),
 });
@@ -137,6 +138,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
           create: deliveryOrder.lineItems.map((line) => ({
             itemId: line.itemId,
             description: line.description,
+            unit: line.unit,
             quantity: line.quantity,
             unitPrice: line.unitPrice,
             lineTotal: line.lineTotal,
@@ -179,6 +181,7 @@ export async function saveInvoice(formData: FormData) {
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
+    unit: line.unit,
     quantity: line.quantity,
     unitPrice: line.unitPrice,
     lineTotal: round2(line.quantity * line.unitPrice),

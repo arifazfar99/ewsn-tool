@@ -14,12 +14,13 @@ export type ItemOption = {
 export type LineItemRow = {
   itemId: string;
   description: string;
+  unit: string;
   quantity: string;
   unitPrice: string;
 };
 
 function emptyRow(): LineItemRow {
-  return { itemId: "", description: "", quantity: "1", unitPrice: "0" };
+  return { itemId: "", description: "", unit: "", quantity: "1", unitPrice: "0" };
 }
 
 function lineTotal(row: LineItemRow): number {
@@ -93,6 +94,7 @@ export default function DocumentLineItemsEditor({
     updateRow(index, {
       itemId,
       description,
+      unit: item ? item.unit : "",
       unitPrice: item ? item.defaultUnitPrice.toString() : "0",
     });
   }
@@ -116,6 +118,7 @@ export default function DocumentLineItemsEditor({
           rows.map((row) => ({
             itemId: row.itemId,
             description: row.description,
+            unit: row.unit,
             quantity: row.quantity,
             unitPrice: row.unitPrice,
           }))
@@ -154,6 +157,13 @@ export default function DocumentLineItemsEditor({
                 value={row.quantity}
                 onChange={(e) => updateRow(i, { quantity: e.target.value })}
                 className="field-input w-20"
+              />
+              <input
+                type="text"
+                placeholder="Unit"
+                value={row.unit}
+                onChange={(e) => updateRow(i, { unit: e.target.value })}
+                className="field-input w-16"
               />
               <input
                 type="number"

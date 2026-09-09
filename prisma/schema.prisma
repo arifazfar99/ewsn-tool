@@ -139,6 +139,7 @@ model QuotationLineItem {
   itemId      String
   item        Item      @relation(fields: [itemId], references: [id], onDelete: Restrict)
   description String
+  unit        String    @default("")
   quantity    Decimal   @db.Decimal(12, 2)
   unitPrice   Decimal   @db.Decimal(12, 2)
   lineTotal   Decimal   @db.Decimal(12, 2)
@@ -201,6 +202,7 @@ model DeliveryOrderLineItem {
   itemId          String
   item            Item          @relation(fields: [itemId], references: [id], onDelete: Restrict)
   description     String
+  unit            String        @default("")
   quantity        Decimal       @db.Decimal(12, 2)
   unitPrice       Decimal       @db.Decimal(12, 2)
   lineTotal       Decimal       @db.Decimal(12, 2)
@@ -241,6 +243,7 @@ model InvoiceLineItem {
   itemId      String
   item        Item    @relation(fields: [itemId], references: [id], onDelete: Restrict)
   description String
+  unit        String  @default("")
   quantity    Decimal @db.Decimal(12, 2)
   unitPrice   Decimal @db.Decimal(12, 2)
   lineTotal   Decimal @db.Decimal(12, 2)

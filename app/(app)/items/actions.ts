@@ -11,7 +11,7 @@ const itemSchema = z.object({
   nameMs: z.string().trim().optional(),
   description: z.string().trim().optional(),
   unit: z.string().trim().min(1),
-  defaultUnitPrice: z.coerce.number().nonnegative(),
+  costPrice: z.coerce.number().nonnegative(),
 });
 
 function withSuccess(path: string, message: string) {
@@ -24,7 +24,7 @@ function parseItemForm(formData: FormData) {
     nameMs: formData.get("nameMs")?.toString() || undefined,
     description: formData.get("description")?.toString() || undefined,
     unit: formData.get("unit")?.toString() ?? "",
-    defaultUnitPrice: formData.get("defaultUnitPrice")?.toString() ?? "",
+    costPrice: formData.get("costPrice")?.toString() ?? "",
   });
 }
 
@@ -39,7 +39,7 @@ export async function createItem(formData: FormData) {
     redirect(
       "/items/new?error=" +
         encodeURIComponent(
-          "Name, unit and a valid default unit price are required."
+          "Name, unit and a valid cost price are required."
         )
     );
   }
@@ -65,7 +65,7 @@ export async function updateItem(formData: FormData) {
     redirect(
       `/items/${id}?error=` +
         encodeURIComponent(
-          "Name, unit and a valid default unit price are required."
+          "Name, unit and a valid cost price are required."
         )
     );
   }

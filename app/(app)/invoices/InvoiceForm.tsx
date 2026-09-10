@@ -6,6 +6,7 @@ import DocumentLineItemsEditor, {
   type LineItemRow,
 } from "@/components/DocumentLineItemsEditor";
 import type { DocumentLanguage } from "@/lib/pdf/labels";
+import type { CustomerSegment } from "@/generated/prisma/client";
 
 type InvoiceFormProps = {
   action: (formData: FormData) => void;
@@ -20,6 +21,7 @@ type InvoiceFormProps = {
   defaultDiscountLabel?: string;
   defaultDiscountAmount?: string;
   language?: DocumentLanguage;
+  customerSegment?: CustomerSegment;
   issued?: boolean;
 };
 
@@ -36,6 +38,7 @@ export default function InvoiceForm({
   defaultDiscountLabel,
   defaultDiscountAmount,
   language,
+  customerSegment,
   issued,
 }: InvoiceFormProps) {
   return (
@@ -75,6 +78,7 @@ export default function InvoiceForm({
         items={items}
         defaultLineItems={defaultLineItems}
         language={language}
+        customerSegment={customerSegment}
       />
 
       <div className="space-y-3">

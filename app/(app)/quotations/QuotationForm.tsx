@@ -7,6 +7,8 @@ import DocumentLineItemsEditor, {
   type LineItemRow,
 } from "@/components/DocumentLineItemsEditor";
 import type { DocumentLanguage } from "@/lib/pdf/labels";
+import type { CustomerSegment } from "@/generated/prisma/client";
+import { SEGMENT_LABELS } from "@/lib/pricing";
 
 type TermsTemplateOption = {
   id: string;
@@ -25,6 +27,7 @@ type QuotationFormProps = {
   defaultNumber?: string | null;
   defaultTitle?: string | null;
   defaultLanguage?: DocumentLanguage;
+  defaultCustomerSegment?: CustomerSegment;
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
   defaultTermsTemplateId?: string | null;
@@ -42,6 +45,7 @@ export default function QuotationForm({
   defaultNumber,
   defaultTitle,
   defaultLanguage,
+  defaultCustomerSegment,
   defaultNotes,
   defaultLineItems,
   defaultTermsTemplateId,
@@ -52,6 +56,9 @@ export default function QuotationForm({
   );
   const [termsText, setTermsText] = useState(defaultTermsText ?? "");
   const [language, setLanguage] = useState<DocumentLanguage>(defaultLanguage ?? "EN");
+  const [customerSegment, setCustomerSegment] = useState<CustomerSegment>(
+    defaultCustomerSegment ?? "DIRECT"
+  );
 
   function handleTermsTemplateChange(templateId: string) {
     const template = termsTemplates.find((t) => t.id === templateId);
@@ -88,6 +95,25 @@ export default function QuotationForm({
           </select>
         </label>
       </div>
+
+      <label className="block max-w-xs">
+        <span className="field-label">Customer Segment</span>
+        <select
+          name="customerSegment"
+          value={customerSegment}
+          onChange={(e) => setCustomerSegment(e.target.value as CustomerSegment)}
+          className="field-input"
+        >
+          {(Object.keys(SEGMENT_LABELS) as CustomerSegment[]).map((segment) => (
+            <option key={segment} value={segment}>
+              {SEGMENT_LABELS[segment]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-ink-soft">
+          Sets the markup applied when picking items from the catalog below.
+        </p>
+      </label>
 
       <div className="grid grid-cols-3 gap-5">
         <label className="block">
@@ -136,6 +162,7 @@ export default function QuotationForm({
         items={items}
         defaultLineItems={defaultLineItems}
         language={language}
+        customerSegment={customerSegment}
       />
 
       <label className="block">

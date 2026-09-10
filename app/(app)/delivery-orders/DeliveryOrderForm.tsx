@@ -6,6 +6,7 @@ import DocumentLineItemsEditor, {
   type LineItemRow,
 } from "@/components/DocumentLineItemsEditor";
 import type { DocumentLanguage } from "@/lib/pdf/labels";
+import type { CustomerSegment } from "@/generated/prisma/client";
 
 type DeliveryOrderFormProps = {
   action: (formData: FormData) => void;
@@ -17,6 +18,7 @@ type DeliveryOrderFormProps = {
   defaultNotes?: string;
   defaultLineItems?: LineItemRow[];
   language?: DocumentLanguage;
+  customerSegment?: CustomerSegment;
 };
 
 export default function DeliveryOrderForm({
@@ -29,6 +31,7 @@ export default function DeliveryOrderForm({
   defaultNotes,
   defaultLineItems,
   language,
+  customerSegment,
 }: DeliveryOrderFormProps) {
   return (
     <form action={action} className="max-w-3xl space-y-6">
@@ -67,6 +70,7 @@ export default function DeliveryOrderForm({
         items={items}
         defaultLineItems={defaultLineItems}
         language={language}
+        customerSegment={customerSegment}
       />
 
       <label className="block">

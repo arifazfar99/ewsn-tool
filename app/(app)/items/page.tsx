@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { StatusBadge } from "@/components/StatusBadge";
+import { sellPriceFromCost } from "@/lib/pricing";
 
 export default async function ItemsPage({
   searchParams,
@@ -41,13 +42,18 @@ export default async function ItemsPage({
             <tr>
               <th>Name</th>
               <th>Unit</th>
-              <th>Default Unit Price</th>
+              <th>Cost Price</th>
+              <th>Direct</th>
+              <th>SME</th>
+              <th>Government</th>
               <th />
               <th />
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {items.map((item) => {
+              const cost = item.costPrice.toNumber();
+              return (
               <tr key={item.id}>
                 <td>
                   {item.name}
@@ -58,8 +64,15 @@ export default async function ItemsPage({
                   )}
                 </td>
                 <td className="text-ink-soft">{item.unit}</td>
-                <td className="num">
-                  RM {item.defaultUnitPrice.toNumber().toFixed(2)}
+                <td className="num">RM {cost.toFixed(2)}</td>
+                <td className="num text-ink-soft">
+                  RM {sellPriceFromCost(cost, "DIRECT").toFixed(2)}
+                </td>
+                <td className="num text-ink-soft">
+                  RM {sellPriceFromCost(cost, "SME").toFixed(2)}
+                </td>
+                <td className="num text-ink-soft">
+                  RM {sellPriceFromCost(cost, "GOVERNMENT").toFixed(2)}
                 </td>
                 <td>
                   {item.archived && (
@@ -72,7 +85,8 @@ export default async function ItemsPage({
                   </Link>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         </div>

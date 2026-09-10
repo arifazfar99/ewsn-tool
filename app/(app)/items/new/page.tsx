@@ -35,15 +35,20 @@ export default async function NewItemPage({
         </label>
 
         <label className="block">
-          <span className="field-label">Default Unit Price</span>
+          <span className="field-label">Cost Price (supplier / Shopee)</span>
           <input
             type="number"
-            name="defaultUnitPrice"
+            name="costPrice"
             step="0.01"
             min="0"
             required
             className="field-input"
           />
+          <p className="mt-1 text-xs text-ink-soft">
+            Sell price is computed automatically per customer segment (Direct
+            +25%, SME +30%, Government +50%) when this item is added to a
+            document.
+          </p>
         </label>
 
         <button type="submit" className="btn-primary">

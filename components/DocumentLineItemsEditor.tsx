@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import type { DocumentLanguage } from "@/lib/pdf/labels";
+import type { CustomerSegment } from "@/generated/prisma/client";
+import { sellPriceFromCost } from "@/lib/pricing";
 
 export type ItemOption = {
   id: string;
   name: string;
   nameMs?: string | null;
   unit: string;
-  defaultUnitPrice: number;
+  costPrice: number;
 };
 
 export type LineItemRow = {
@@ -38,10 +40,12 @@ export default function DocumentLineItemsEditor({
   items,
   defaultLineItems,
   language = "EN",
+  customerSegment = "DIRECT",
 }: {
   items: ItemOption[];
   defaultLineItems?: LineItemRow[];
   language?: DocumentLanguage;
+  customerSegment?: CustomerSegment;
 }) {
   const [rows, setRows] = useState<LineItemRow[]>(
     defaultLineItems && defaultLineItems.length > 0
@@ -78,6 +82,26 @@ export default function DocumentLineItemsEditor({
     );
   }
 
+  // Resync already-picked rows' prices when the customer segment changes, so
+  // switching from Direct to Government (say) doesn't leave stale Direct
+  // prices sitting on rows already picked. Same "only touch untouched rows"
+  // rule as the language resync above - a manually-typed price is left
+  // alone, since it no longer matches what auto-fill would have produced.
+  const [prevSegment, setPrevSegment] = useState(customerSegment);
+  if (customerSegment !== prevSegment) {
+    setPrevSegment(customerSegment);
+    setRows((prev) =>
+      prev.map((row) => {
+        const item = items.find((it) => it.id === row.itemId);
+        if (!item) return row;
+        const oldPrice = sellPriceFromCost(item.costPrice, prevSegment).toString();
+        if (row.unitPrice !== oldPrice) return row;
+        const newPrice = sellPriceFromCost(item.costPrice, customerSegment).toString();
+        return row.unitPrice === newPrice ? row : { ...row, unitPrice: newPrice };
+      })
+    );
+  }
+
   function updateRow(index: number, patch: Partial<LineItemRow>) {
     setRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, ...patch } : row))
@@ -95,7 +119,9 @@ export default function DocumentLineItemsEditor({
       itemId,
       description,
       unit: item ? item.unit : "",
-      unitPrice: item ? item.defaultUnitPrice.toString() : "0",
+      unitPrice: item
+        ? sellPriceFromCost(item.costPrice, customerSegment).toString()
+        : "0",
     });
   }
 

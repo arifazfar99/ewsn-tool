@@ -64,12 +64,13 @@ export default async function DeliveryOrderDetailPage({
             name: it.name,
             nameMs: it.nameMs,
             unit: it.unit,
-            defaultUnitPrice: it.defaultUnitPrice.toNumber(),
+            costPrice: it.costPrice.toNumber(),
           }))}
           defaultTitle={deliveryOrder.title ?? ""}
           defaultNumber={defaultNumber}
           defaultNotes={deliveryOrder.notes ?? ""}
           language={deliveryOrder.language}
+          customerSegment={deliveryOrder.customerSegment}
           defaultLineItems={deliveryOrder.lineItems.map((line) => ({
             itemId: line.itemId,
             description: line.description,

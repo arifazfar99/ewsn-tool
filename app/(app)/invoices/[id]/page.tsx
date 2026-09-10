@@ -83,7 +83,7 @@ export default async function InvoiceDetailPage({
             name: it.name,
             nameMs: it.nameMs,
             unit: it.unit,
-            defaultUnitPrice: it.defaultUnitPrice.toNumber(),
+            costPrice: it.costPrice.toNumber(),
           }))}
           defaultTitle={invoice.title ?? ""}
           defaultNumber={defaultNumber}
@@ -92,6 +92,7 @@ export default async function InvoiceDetailPage({
           defaultDiscountLabel={invoice.discountLabel ?? ""}
           defaultDiscountAmount={invoice.discountAmount?.toNumber().toString() ?? ""}
           language={invoice.language}
+          customerSegment={invoice.customerSegment}
           defaultLineItems={invoice.lineItems.map((line) => ({
             itemId: line.itemId,
             description: line.description,

@@ -28,6 +28,7 @@ const quotationSchema = z.object({
   number: z.string().trim().optional(),
   title: z.string().trim().optional(),
   language: z.enum(["EN", "MS"]).default("EN"),
+  customerSegment: z.enum(["DIRECT", "SME", "GOVERNMENT"]).default("DIRECT"),
   notes: z.string().trim().optional(),
   termsTemplateId: z.string().trim().optional(),
   termsText: z.string().trim().optional(),
@@ -54,6 +55,7 @@ function parseQuotationForm(formData: FormData) {
     number: formData.get("number")?.toString() || undefined,
     title: formData.get("title")?.toString() || undefined,
     language: formData.get("language")?.toString() || undefined,
+    customerSegment: formData.get("customerSegment")?.toString() || undefined,
     notes: formData.get("notes")?.toString() || undefined,
     termsTemplateId: formData.get("termsTemplateId")?.toString() || undefined,
     termsText: formData.get("termsText")?.toString() || undefined,
@@ -80,8 +82,18 @@ export async function saveQuotation(formData: FormData) {
     );
   }
 
-  const { clientId, date, number, title, language, notes, termsTemplateId, termsText, lineItems } =
-    parsed.data;
+  const {
+    clientId,
+    date,
+    number,
+    title,
+    language,
+    customerSegment,
+    notes,
+    termsTemplateId,
+    termsText,
+    lineItems,
+  } = parsed.data;
   const preparedLines = lineItems.map((line, i) => ({
     itemId: line.itemId,
     description: line.description,
@@ -134,6 +146,7 @@ export async function saveQuotation(formData: FormData) {
             year,
             title: title || null,
             language,
+            customerSegment,
             notes: notes ?? null,
             termsTemplateId: termsTemplateId || null,
             termsText: termsText ?? null,
@@ -170,6 +183,7 @@ export async function saveQuotation(formData: FormData) {
           year,
           title: title || null,
           language,
+          customerSegment,
           notes: notes ?? null,
           termsTemplateId: termsTemplateId || null,
           termsText: termsText ?? null,

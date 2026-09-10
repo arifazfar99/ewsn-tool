@@ -80,13 +80,14 @@ export default async function QuotationDetailPage({
             name: it.name,
             nameMs: it.nameMs,
             unit: it.unit,
-            defaultUnitPrice: it.defaultUnitPrice.toNumber(),
+            costPrice: it.costPrice.toNumber(),
           }))}
           defaultClientId={quotation.clientId}
           defaultDate={quotation.date.toISOString().slice(0, 10)}
           defaultNumber={defaultNumber}
           defaultTitle={quotation.title ?? ""}
           defaultLanguage={quotation.language}
+          defaultCustomerSegment={quotation.customerSegment}
           defaultNotes={quotation.notes ?? ""}
           defaultLineItems={quotation.lineItems.map((line) => ({
             itemId: line.itemId,

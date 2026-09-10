@@ -35,7 +35,7 @@ export default async function NewQuotationPage({
           name: it.name,
           nameMs: it.nameMs,
           unit: it.unit,
-          defaultUnitPrice: it.defaultUnitPrice.toNumber(),
+          costPrice: it.costPrice.toNumber(),
         }))}
         termsTemplates={termsTemplates.map((t) => ({
           id: t.id,

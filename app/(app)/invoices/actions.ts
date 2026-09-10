@@ -131,6 +131,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
         clientId: deliveryOrder.clientId,
         title: deliveryOrder.title,
         language: deliveryOrder.language,
+        customerSegment: deliveryOrder.customerSegment,
         notes: deliveryOrder.notes,
         sourceDeliveryOrderId: deliveryOrder.id,
         bankDetailsText: profile?.bankDetailsText ?? "",

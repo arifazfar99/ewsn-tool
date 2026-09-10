@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { issueInvoice } from "../../actions";
@@ -63,6 +64,13 @@ export default async function InvoicePreviewPage({
 
   return (
     <div>
+      <Link
+        href={`/invoices/${invoice.id}`}
+        className="link mb-2 inline-block text-sm"
+      >
+        &larr; Back to Invoice
+      </Link>
+
       <div className="mb-6 flex items-center justify-between">
         <h1 className="page-title">Invoice Preview</h1>
         <div className="flex items-center gap-4">

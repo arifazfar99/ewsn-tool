@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { issueDeliveryOrder } from "../../actions";
@@ -58,6 +59,13 @@ export default async function DeliveryOrderPreviewPage({
 
   return (
     <div>
+      <Link
+        href={`/delivery-orders/${deliveryOrder.id}`}
+        className="link mb-2 inline-block text-sm"
+      >
+        &larr; Back to Delivery Order
+      </Link>
+
       <div className="mb-6 flex items-center justify-between">
         <h1 className="page-title">Delivery Order Preview</h1>
         <div className="flex items-center gap-4">

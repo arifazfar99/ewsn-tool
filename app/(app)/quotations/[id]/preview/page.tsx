@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { issueQuotation } from "../../actions";
@@ -58,6 +59,13 @@ export default async function QuotationPreviewPage({
 
   return (
     <div>
+      <Link
+        href={`/quotations/${quotation.id}`}
+        className="link mb-2 inline-block text-sm"
+      >
+        &larr; Back to Quotation
+      </Link>
+
       <div className="mb-6 flex items-center justify-between">
         <h1 className="page-title">Quotation Preview</h1>
         <div className="flex items-center gap-4">

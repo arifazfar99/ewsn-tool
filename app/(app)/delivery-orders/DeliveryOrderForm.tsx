@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import DocumentLineItemsEditor, {
   type ItemOption,
   type LineItemRow,
@@ -78,9 +79,14 @@ export default function DeliveryOrderForm({
         />
       </label>
 
-      <button type="submit" className="btn-primary">
-        Save
-      </button>
+      <div className="flex items-center gap-4">
+        <button type="submit" className="btn-primary">
+          Save
+        </button>
+        <Link href={`/delivery-orders/${deliveryOrderId}/preview`} className="link">
+          Preview / Generate PDF
+        </Link>
+      </div>
     </form>
   );
 }

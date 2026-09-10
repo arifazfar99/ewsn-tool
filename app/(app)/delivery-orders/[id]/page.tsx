@@ -79,25 +79,17 @@ export default async function DeliveryOrderDetailPage({
           }))}
         />
 
-        <div className="mt-8 max-w-3xl space-y-2">
-          {deliveryOrder.sourceQuotation && (
-            <p className="text-sm text-ink-soft">
-              From quotation{" "}
-              <Link
-                href={`/quotations/${deliveryOrder.sourceQuotation.id}`}
-                className="link"
-              >
-                {deliveryOrder.sourceQuotation.number ?? "DRAFT"}
-              </Link>
-            </p>
-          )}
-          <Link
-            href={`/delivery-orders/${deliveryOrder.id}/preview`}
-            className="link inline-block"
-          >
-            Preview / Generate PDF
-          </Link>
-        </div>
+        {deliveryOrder.sourceQuotation && (
+          <p className="mt-8 max-w-3xl text-sm text-ink-soft">
+            From quotation{" "}
+            <Link
+              href={`/quotations/${deliveryOrder.sourceQuotation.id}`}
+              className="link"
+            >
+              {deliveryOrder.sourceQuotation.number ?? "DRAFT"}
+            </Link>
+          </p>
+        )}
       </div>
     );
   }

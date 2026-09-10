@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import DocumentLineItemsEditor, {
   type ItemOption,
   type LineItemRow,
@@ -19,6 +20,7 @@ type InvoiceFormProps = {
   defaultDiscountLabel?: string;
   defaultDiscountAmount?: string;
   language?: DocumentLanguage;
+  issued?: boolean;
 };
 
 export default function InvoiceForm({
@@ -34,6 +36,7 @@ export default function InvoiceForm({
   defaultDiscountLabel,
   defaultDiscountAmount,
   language,
+  issued,
 }: InvoiceFormProps) {
   return (
     <form action={action} className="max-w-3xl space-y-6">
@@ -122,9 +125,14 @@ export default function InvoiceForm({
         />
       </label>
 
-      <button type="submit" className="btn-primary">
-        Save
-      </button>
+      <div className="flex items-center gap-4">
+        <button type="submit" className="btn-primary">
+          Save
+        </button>
+        <Link href={`/invoices/${invoiceId}/preview`} className="link">
+          {issued ? "View / Download PDF" : "Preview / Generate PDF"}
+        </Link>
+      </div>
     </form>
   );
 }

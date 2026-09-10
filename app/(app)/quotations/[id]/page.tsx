@@ -104,14 +104,6 @@ export default async function QuotationDetailPage({
           defaultTermsText={quotation.termsText ?? ""}
         />
 
-        <div className="mt-8 max-w-3xl">
-          <Link
-            href={`/quotations/${quotation.id}/preview`}
-            className="link"
-          >
-            Preview / Generate PDF
-          </Link>
-        </div>
       </div>
     );
   }

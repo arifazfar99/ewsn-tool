@@ -115,7 +115,7 @@ export default function SiteNav({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden shrink-0 flex-col border-r border-border bg-surface lg:flex lg:w-60">
+      <aside className="hidden shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:self-start">
         <div className="border-b border-border px-5 py-4">
           <span className="text-lg font-semibold tracking-tight text-ink">
             EWSN

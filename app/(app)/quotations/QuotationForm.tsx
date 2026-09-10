@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import DocumentLineItemsEditor, {
   type ItemOption,
@@ -175,9 +176,16 @@ export default function QuotationForm({
         />
       </label>
 
-      <button type="submit" className="btn-primary">
-        Save
-      </button>
+      <div className="flex items-center gap-4">
+        <button type="submit" className="btn-primary">
+          Save
+        </button>
+        {quotationId && (
+          <Link href={`/quotations/${quotationId}/preview`} className="link">
+            Preview / Generate PDF
+          </Link>
+        )}
+      </div>
     </form>
   );
 }

@@ -121,8 +121,16 @@ export default async function DashboardPage() {
       value: `RM ${netSales.toFixed(2)}`,
       danger: netSales < 0,
     },
-    { label: "Unpaid Invoices", value: unpaidInvoices.length },
-    { label: "Unpaid Total", value: `RM ${unpaidTotal.toFixed(2)}` },
+    {
+      label: "Unpaid Invoices",
+      value: unpaidInvoices.length,
+      danger: unpaidInvoices.length > 0,
+    },
+    {
+      label: "Unpaid Total",
+      value: `RM ${unpaidTotal.toFixed(2)}`,
+      danger: unpaidTotal > 0,
+    },
     {
       label: "Pending Receipts",
       value: pendingReceiptCount,

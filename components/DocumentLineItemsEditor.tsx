@@ -129,62 +129,72 @@ export default function DocumentLineItemsEditor({
         <span className="field-label">Line Items</span>
         <div className="space-y-3">
           {rows.map((row, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <select
-                value={row.itemId}
-                onChange={(e) => handleItemChange(i, e.target.value)}
-                className="field-input w-40"
-              >
-                <option value="">Select item</option>
-                {items.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
+            <div
+              key={i}
+              className="space-y-2 rounded-md border border-border p-3 sm:space-y-0 sm:border-0 sm:p-0 sm:flex sm:items-start sm:gap-2"
+            >
+              <div className="flex items-center gap-2 sm:contents">
+                <select
+                  value={row.itemId}
+                  onChange={(e) => handleItemChange(i, e.target.value)}
+                  className="field-input flex-1 sm:w-40 sm:flex-none"
+                >
+                  <option value="">Select item</option>
+                  {items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeRow(i)}
+                  disabled={rows.length === 1}
+                  className="text-sm font-medium text-danger hover:text-danger/80 disabled:opacity-30 sm:order-last sm:pt-1.5"
+                >
+                  Remove
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="Description"
                 value={row.description}
                 onChange={(e) => updateRow(i, { description: e.target.value })}
-                className="field-input flex-1"
+                className="field-input w-full sm:flex-1"
               />
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Qty"
-                value={row.quantity}
-                onChange={(e) => updateRow(i, { quantity: e.target.value })}
-                className="field-input w-20"
-              />
-              <input
-                type="text"
-                placeholder="Unit"
-                value={row.unit}
-                onChange={(e) => updateRow(i, { unit: e.target.value })}
-                className="field-input w-16"
-              />
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Unit Price"
-                value={row.unitPrice}
-                onChange={(e) => updateRow(i, { unitPrice: e.target.value })}
-                className="field-input w-28"
-              />
-              <div className="w-24 pt-1.5 text-right font-mono text-sm text-ink-soft">
-                {lineTotal(row).toFixed(2)}
+              <div className="flex items-center gap-2 sm:contents">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Qty"
+                  value={row.quantity}
+                  onChange={(e) => updateRow(i, { quantity: e.target.value })}
+                  className="field-input flex-1 sm:w-20 sm:flex-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Unit"
+                  value={row.unit}
+                  onChange={(e) => updateRow(i, { unit: e.target.value })}
+                  className="field-input flex-1 sm:w-16 sm:flex-none"
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Unit Price"
+                  value={row.unitPrice}
+                  onChange={(e) => updateRow(i, { unitPrice: e.target.value })}
+                  className="field-input flex-1 sm:w-28 sm:flex-none"
+                />
               </div>
-              <button
-                type="button"
-                onClick={() => removeRow(i)}
-                disabled={rows.length === 1}
-                className="pt-1.5 text-sm font-medium text-danger hover:text-danger/80 disabled:opacity-30"
-              >
-                Remove
-              </button>
+              <div className="flex items-center justify-between sm:contents">
+                <span className="text-xs text-ink-soft sm:hidden">Line total</span>
+                <div className="font-mono text-sm text-ink-soft sm:w-24 sm:pt-1.5 sm:text-right">
+                  {lineTotal(row).toFixed(2)}
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -99,6 +99,7 @@ export default async function InvoiceDetailPage({
             quantity: line.quantity.toNumber().toString(),
             unitPrice: line.unitPrice.toNumber().toString(),
           }))}
+          issued={Boolean(invoice.issuedAt)}
         />
 
         <DepositForm
@@ -111,22 +112,17 @@ export default async function InvoiceDetailPage({
           }
         />
 
-        <div className="mt-8 space-y-2">
-          {invoice.sourceDeliveryOrder && (
-            <p className="text-sm text-ink-soft">
-              From delivery order{" "}
-              <Link
-                href={`/delivery-orders/${invoice.sourceDeliveryOrder.id}`}
-                className="link"
-              >
-                {invoice.sourceDeliveryOrder.number ?? "DRAFT"}
-              </Link>
-            </p>
-          )}
-          <Link href={`/invoices/${invoice.id}/preview`} className="link">
-            {invoice.issuedAt ? "View / Download PDF" : "Preview / Generate PDF"}
-          </Link>
-        </div>
+        {invoice.sourceDeliveryOrder && (
+          <p className="mt-8 text-sm text-ink-soft">
+            From delivery order{" "}
+            <Link
+              href={`/delivery-orders/${invoice.sourceDeliveryOrder.id}`}
+              className="link"
+            >
+              {invoice.sourceDeliveryOrder.number ?? "DRAFT"}
+            </Link>
+          </p>
+        )}
 
         {invoice.status === "PAID" && (
           <form action={issueReceiptForInvoice} className="my-6">

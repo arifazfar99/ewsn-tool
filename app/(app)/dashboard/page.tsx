@@ -3,6 +3,16 @@ import { prisma } from "@/lib/db";
 import { round2, invoiceBalanceDue } from "@/lib/money";
 import { buildStages, statusLine, isActive } from "@/lib/documentStage";
 
+const PILL_TONE: Record<"discussing" | "progress" | "danger", string> = {
+  discussing: "bg-surface-muted text-ink-soft",
+  progress: "bg-primary-soft text-primary",
+  danger: "bg-danger-soft text-danger",
+};
+
+function money(n: number) {
+  return `RM ${n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export default async function DashboardPage() {
   const [
     quotationCount,
@@ -63,9 +73,9 @@ export default async function DashboardPage() {
           id: p.id,
           client: p.client.name,
           title: p.title,
-          date: p.createdAt,
           total: 0,
           progress: "Discussing - no quotation yet.",
+          tone: "discussing" as const,
           active: true,
         };
       }
@@ -93,9 +103,12 @@ export default async function DashboardPage() {
         id: p.id,
         client: p.client.name,
         title: p.title,
-        date: p.createdAt,
         total: q.lineItems.reduce((sum, line) => sum + line.lineTotal.toNumber(), 0),
         progress: statusLine(stages),
+        tone:
+          q.deliveryOrder?.invoice?.status === "UNPAID"
+            ? ("danger" as const)
+            : ("progress" as const),
         active: isActive(stages),
       };
     })
@@ -131,89 +144,145 @@ export default async function DashboardPage() {
   const pendingReceiptCount =
     pendingDepositInvoiceReceiptCount + pendingInvoiceReceiptCount;
 
-  const stats = [
-    { label: "Quotations", value: quotationCount },
-    { label: "Accepted Quotations", value: acceptedQuotationCount },
-    { label: "Total Sales", value: `RM ${totalSales.toFixed(2)}` },
-    { label: "Total Costs", value: `RM ${totalCosts.toFixed(2)}` },
+  const pipelineStats = [
+    { label: "Quotations", value: quotationCount.toString() },
+    { label: "Accepted Quotations", value: acceptedQuotationCount.toString() },
+    { label: "Total Sales", value: money(totalSales), tone: "ok" as const },
     {
       label: "Net Sales",
-      value: `RM ${netSales.toFixed(2)}`,
-      danger: netSales < 0,
-    },
-    {
-      label: "Unpaid Invoices",
-      value: unpaidInvoices.length,
-      danger: unpaidInvoices.length > 0,
-    },
-    {
-      label: "Unpaid Total",
-      value: `RM ${unpaidTotal.toFixed(2)}`,
-      danger: unpaidTotal > 0,
-    },
-    {
-      label: "Pending Receipts",
-      value: pendingReceiptCount,
-      danger: pendingReceiptCount > 0,
+      value: money(netSales),
+      tone: netSales < 0 ? ("attention" as const) : ("ok" as const),
     },
   ];
 
-  return (
-    <div>
-      <h1 className="page-title mb-6">Dashboard</h1>
+  const attentionStats = [
+    {
+      label: "Unpaid Invoices",
+      value: unpaidInvoices.length.toString(),
+      tone: unpaidInvoices.length > 0 ? ("attention" as const) : undefined,
+    },
+    {
+      label: "Unpaid Total",
+      value: money(unpaidTotal),
+      tone: unpaidTotal > 0 ? ("attention" as const) : undefined,
+    },
+    {
+      label: "Pending Receipts",
+      value: pendingReceiptCount.toString(),
+      tone: pendingReceiptCount > 0 ? ("attention" as const) : undefined,
+    },
+    { label: "Total Costs", value: money(totalCosts) },
+  ];
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="panel p-4">
-            <p className="eyebrow">{s.label}</p>
-            <p
-              className={`mt-1 font-mono text-2xl font-semibold ${
-                s.danger ? "text-danger" : "text-ink"
-              }`}
-            >
-              {s.value}
-            </p>
-          </div>
-        ))}
+  const today = new Date().toLocaleDateString("en-MY", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div className="max-w-4xl space-y-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-ink-soft">{today}</p>
+        </div>
+        <Link href="/projects/new" className="btn-primary">
+          <span aria-hidden="true">+</span> New Project
+        </Link>
       </div>
 
-      <h2 className="mb-3 text-base font-semibold text-ink">
-        Active Projects
-      </h2>
-      {activeProjects.length === 0 ? (
-        <p className="text-sm text-ink-soft">Nothing currently in progress.</p>
-      ) : (
-        <div className="overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Progress</th>
-              <th>Total</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {activeProjects.map((p) => (
-              <tr key={p.id}>
-                <td>{p.title ?? p.client}</td>
-                <td className="text-ink-soft">{p.client}</td>
-                <td className="text-ink-soft">{p.date.toLocaleDateString("en-MY")}</td>
-                <td className="text-ink-soft">{p.progress}</td>
-                <td className="num">RM {p.total.toFixed(2)}</td>
-                <td className="text-right">
-                  <Link href={`/projects/${p.id}`} className="link">
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-2.5">
+        <span className="eyebrow">Pipeline</span>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {pipelineStats.map((s) => (
+            <StatTile key={s.label} label={s.label} value={s.value} tone={s.tone} />
+          ))}
         </div>
-      )}
+      </div>
+
+      <div className="space-y-2.5">
+        <span className="eyebrow">Needs Attention</span>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {attentionStats.map((s) => (
+            <StatTile key={s.label} label={s.label} value={s.value} tone={s.tone} />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-ink">Active Projects</h2>
+          <span className="text-xs text-ink-soft">{activeProjects.length} in progress</span>
+        </div>
+        {activeProjects.length === 0 ? (
+          <p className="text-sm text-ink-soft">Nothing currently in progress.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {activeProjects.map((p) => (
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center gap-3.5 rounded-md border border-border bg-surface p-3.5"
+              >
+                <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-white">
+                  {p.client.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1 basis-full sm:basis-0">
+                  <p className="truncate text-sm font-semibold text-ink">
+                    {p.title ?? p.client}
+                  </p>
+                  <p className="truncate text-xs text-ink-soft">{p.client}</p>
+                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-semibold before:h-1.5 before:w-1.5 before:rounded-full before:bg-current ${PILL_TONE[p.tone]}`}
+                >
+                  {p.progress}
+                </span>
+                <span className="shrink-0 min-w-[88px] text-right font-mono text-[13.5px] font-semibold text-ink">
+                  {money(p.total)}
+                </span>
+                <Link
+                  href={`/projects/${p.id}`}
+                  className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-soft"
+                >
+                  View
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "attention" | "ok";
+}) {
+  const isAttention = tone === "attention";
+  return (
+    <div
+      className={`flex flex-col gap-1.5 rounded-md border p-4 ${
+        isAttention ? "border-danger/25 bg-danger-soft" : "border-border bg-surface"
+      }`}
+    >
+      <p className={`text-[11.5px] font-semibold ${isAttention ? "text-danger" : "text-ink-soft"}`}>
+        {label}
+      </p>
+      <p
+        className={`font-mono text-xl font-semibold ${
+          isAttention ? "text-danger" : tone === "ok" ? "text-success" : "text-ink"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

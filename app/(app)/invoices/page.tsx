@@ -28,7 +28,12 @@ export default async function InvoicesPage({
   const [invoices, clients] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      include: { client: true, sourceDeliveryOrder: true },
+      include: {
+        client: true,
+        sourceDeliveryOrder: {
+          include: { sourceQuotation: { select: { projectId: true } } },
+        },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.client.findMany({ orderBy: { name: "asc" } }),
@@ -141,7 +146,7 @@ export default async function InvoicesPage({
                 <td>
                   {inv.sourceDeliveryOrder ? (
                     <Link
-                      href={`/delivery-orders/${inv.sourceDeliveryOrder.id}`}
+                      href={`/projects/${inv.sourceDeliveryOrder.sourceQuotation?.projectId}`}
                       className="link"
                     >
                       {inv.sourceDeliveryOrder.number ?? "DRAFT"}
@@ -151,7 +156,14 @@ export default async function InvoicesPage({
                   )}
                 </td>
                 <td className="text-right">
-                  <Link href={`/invoices/${inv.id}`} className="link">
+                  <Link
+                    href={
+                      inv.sourceDeliveryOrder?.sourceQuotation?.projectId
+                        ? `/projects/${inv.sourceDeliveryOrder.sourceQuotation.projectId}`
+                        : `/invoices/${inv.id}`
+                    }
+                    className="link"
+                  >
                     View
                   </Link>
                 </td>

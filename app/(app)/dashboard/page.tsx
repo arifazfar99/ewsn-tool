@@ -70,6 +70,7 @@ export default async function DashboardPage() {
       });
       return {
         id: q.id,
+        projectId: q.projectId,
         number: q.number,
         client: q.client.name,
         title: q.title,
@@ -189,7 +190,7 @@ export default async function DashboardPage() {
                 <td className="text-ink-soft">{q.progress}</td>
                 <td className="num">RM {q.total.toFixed(2)}</td>
                 <td className="text-right">
-                  <Link href={`/quotations/${q.id}`} className="link">
+                  <Link href={`/projects/${q.projectId}`} className="link">
                     View
                   </Link>
                 </td>

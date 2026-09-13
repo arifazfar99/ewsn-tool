@@ -11,6 +11,7 @@ import type { CustomerSegment } from "@/generated/prisma/client";
 type InvoiceFormProps = {
   action: (formData: FormData) => void;
   invoiceId: string;
+  projectId?: string;
   clientName: string;
   items: ItemOption[];
   defaultTitle?: string | null;
@@ -28,6 +29,7 @@ type InvoiceFormProps = {
 export default function InvoiceForm({
   action,
   invoiceId,
+  projectId,
   clientName,
   items,
   defaultTitle,
@@ -39,7 +41,6 @@ export default function InvoiceForm({
   defaultDiscountAmount,
   language,
   customerSegment,
-  issued,
 }: InvoiceFormProps) {
   return (
     <form action={action} className="max-w-3xl space-y-6">
@@ -133,9 +134,11 @@ export default function InvoiceForm({
         <button type="submit" className="btn-primary">
           Save
         </button>
-        <Link href={`/invoices/${invoiceId}/preview`} className="link">
-          {issued ? "View / Download PDF" : "Preview / Generate PDF"}
-        </Link>
+        {projectId && (
+          <Link href={`/projects/${projectId}`} className="link">
+            Back to Project
+          </Link>
+        )}
       </div>
     </form>
   );

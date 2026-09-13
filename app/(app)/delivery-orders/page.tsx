@@ -28,7 +28,10 @@ export default async function DeliveryOrdersPage({
   const [deliveryOrders, clients] = await Promise.all([
     prisma.deliveryOrder.findMany({
       where,
-      include: { client: true, sourceQuotation: true },
+      include: {
+        client: true,
+        sourceQuotation: { select: { id: true, number: true, projectId: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.client.findMany({ orderBy: { name: "asc" } }),
@@ -144,7 +147,7 @@ export default async function DeliveryOrdersPage({
                 <td>
                   {d.sourceQuotation ? (
                     <Link
-                      href={`/quotations/${d.sourceQuotation.id}`}
+                      href={`/projects/${d.sourceQuotation.projectId}`}
                       className="link"
                     >
                       {d.sourceQuotation.number ?? "DRAFT"}
@@ -154,7 +157,14 @@ export default async function DeliveryOrdersPage({
                   )}
                 </td>
                 <td className="text-right">
-                  <Link href={`/delivery-orders/${d.id}`} className="link">
+                  <Link
+                    href={
+                      d.sourceQuotation
+                        ? `/projects/${d.sourceQuotation.projectId}`
+                        : `/delivery-orders/${d.id}`
+                    }
+                    className="link"
+                  >
                     View
                   </Link>
                 </td>

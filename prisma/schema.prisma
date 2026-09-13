@@ -50,6 +50,23 @@ model Client {
   quotations     Quotation[]
   deliveryOrders DeliveryOrder[]
   invoices       Invoice[]
+  projects       Project[]
+}
+
+// The hub a job lives under before a Quotation exists (discussion notes) and
+// after (progress + actions) - wraps exactly one Quotation->DO->Invoice->
+// Receipt chain, never more than one, see Project Resources/project-plan.md
+// 2026-09-13 for the full Project Hub feature this backs.
+model Project {
+  id        String     @id @default(cuid())
+  title     String?
+  clientId  String
+  client    Client     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  quotation Quotation?
 }
 
 model Item {
@@ -130,6 +147,12 @@ model Quotation {
   date            DateTime                @default(now())
   clientId        String
   client          Client                  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  // Nullable for a clean migration on existing rows (backfilled by
+  // scripts/backfill-projects.ts); @unique is what actually enforces the 1:1
+  // Project<->Quotation chain, same pattern as sourceQuotationId/
+  // sourceDeliveryOrderId elsewhere in this schema.
+  projectId       String?                 @unique
+  project         Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
   title           String?
   notes           String?
   status          QuotationStatus         @default(DRAFT)

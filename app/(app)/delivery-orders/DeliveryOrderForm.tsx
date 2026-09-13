@@ -11,6 +11,7 @@ import type { CustomerSegment } from "@/generated/prisma/client";
 type DeliveryOrderFormProps = {
   action: (formData: FormData) => void;
   deliveryOrderId: string;
+  projectId?: string;
   clientName: string;
   items: ItemOption[];
   defaultTitle?: string | null;
@@ -24,6 +25,7 @@ type DeliveryOrderFormProps = {
 export default function DeliveryOrderForm({
   action,
   deliveryOrderId,
+  projectId,
   clientName,
   items,
   defaultTitle,
@@ -87,9 +89,11 @@ export default function DeliveryOrderForm({
         <button type="submit" className="btn-primary">
           Save
         </button>
-        <Link href={`/delivery-orders/${deliveryOrderId}/preview`} className="link">
-          Preview / Generate PDF
-        </Link>
+        {projectId && (
+          <Link href={`/projects/${projectId}`} className="link">
+            Back to Project
+          </Link>
+        )}
       </div>
     </form>
   );

@@ -117,7 +117,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
     deliveryOrder.invoice
   ) {
     redirect(
-      `/delivery-orders/${deliveryOrderId}?error=` +
+      `/projects/${deliveryOrder.sourceQuotation?.projectId}?error=` +
         encodeURIComponent(
           "Delivery order must be issued, not voided, and not already invoiced."
         )
@@ -135,7 +135,7 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
   const receivedDeposit = deliveryOrder.sourceQuotation?.depositInvoice;
   const carryDeposit = receivedDeposit?.receivedAt != null;
 
-  const invoice = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     return tx.invoice.create({
       data: {
         date: new Date(),
@@ -164,9 +164,11 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
   });
 
   revalidatePath("/delivery-orders");
-  revalidatePath(`/delivery-orders/${deliveryOrderId}`);
   revalidatePath("/invoices");
-  redirect(withSuccess(`/invoices/${invoice.id}`, "Invoice created"));
+  revalidatePath(`/projects/${deliveryOrder.sourceQuotation?.projectId}`);
+  redirect(
+    withSuccess(`/projects/${deliveryOrder.sourceQuotation?.projectId}`, "Invoice created")
+  );
 }
 
 export async function saveInvoice(formData: FormData) {
@@ -209,14 +211,17 @@ export async function saveInvoice(formData: FormData) {
   // deposit lock in setInvoiceDeposit's callers).
   const existing = await prisma.invoice.findUnique({
     where: { id },
-    select: { receipt: { select: { id: true } } },
+    select: {
+      receipt: { select: { id: true } },
+      sourceDeliveryOrder: { select: { sourceQuotation: { select: { projectId: true } } } },
+    },
   });
   if (!existing) {
     throw new Error("Invoice not found");
   }
   if (existing.receipt) {
     redirect(
-      `/invoices/${id}?error=` +
+      `/projects/${existing.sourceDeliveryOrder?.sourceQuotation?.projectId}?error=` +
         encodeURIComponent(
           "A receipt has already been issued for this invoice — its content is now locked."
         )
@@ -275,20 +280,25 @@ export async function issueInvoice(formData: FormData) {
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { lineItems: true },
+    include: {
+      lineItems: true,
+      sourceDeliveryOrder: { include: { sourceQuotation: { select: { projectId: true } } } },
+    },
   });
   if (!invoice) {
     throw new Error("Invoice not found");
   }
+  const projectId = invoice.sourceDeliveryOrder?.sourceQuotation?.projectId;
 
   if (invoice.issuedAt) {
-    // Already issued: nothing to do, re-downloading uses the stored data.
-    redirect(`/invoices/${id}/preview`);
+    // Already issued: nothing to do, re-downloading uses the Download link
+    // on the owning Project.
+    redirect(`/projects/${projectId}`);
   }
 
   if (invoice.lineItems.length === 0) {
     redirect(
-      `/invoices/${id}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent("Add at least one line item before generating a PDF.")
     );
   }
@@ -307,9 +317,8 @@ export async function issueInvoice(formData: FormData) {
   });
 
   revalidatePath("/invoices");
-  revalidatePath(`/invoices/${id}`);
-  revalidatePath(`/invoices/${id}/preview`);
-  redirect(withSuccess(`/invoices/${id}/preview`, "Invoice issued"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Invoice issued"));
 }
 
 // Deposit received/date is metadata, not document content — same reasoning as
@@ -328,14 +337,24 @@ export async function setInvoiceDeposit(formData: FormData) {
     throw new Error("Missing invoice id");
   }
 
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+    select: {
+      sourceDeliveryOrder: { select: { sourceQuotation: { select: { projectId: true } } } },
+    },
+  });
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+  const projectId = invoice.sourceDeliveryOrder?.sourceQuotation?.projectId;
+
   const parsed = depositSchema.safeParse({
     depositReceived: formData.get("depositReceived")?.toString() || undefined,
     depositReceivedAt: formData.get("depositReceivedAt")?.toString() || undefined,
   });
   if (!parsed.success) {
     redirect(
-      `/invoices/${id}?error=` +
-        encodeURIComponent("Enter a valid deposit amount.")
+      `/projects/${projectId}?error=` + encodeURIComponent("Enter a valid deposit amount.")
     );
   }
 
@@ -350,9 +369,8 @@ export async function setInvoiceDeposit(formData: FormData) {
   });
 
   revalidatePath("/invoices");
-  revalidatePath(`/invoices/${id}`);
-  revalidatePath(`/invoices/${id}/preview`);
-  redirect(withSuccess(`/invoices/${id}`, "Deposit updated"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Deposit updated"));
 }
 
 // Paid/Unpaid is metadata, not document content, so it's NOT gated by the
@@ -381,15 +399,19 @@ export async function setInvoiceStatus(formData: FormData) {
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    select: { status: true },
+    select: {
+      status: true,
+      sourceDeliveryOrder: { select: { sourceQuotation: { select: { projectId: true } } } },
+    },
   });
   if (!invoice) {
     throw new Error("Invoice not found");
   }
+  const projectId = invoice.sourceDeliveryOrder?.sourceQuotation?.projectId;
 
   if (!ALLOWED_TRANSITIONS[invoice.status].includes(targetStatus)) {
     redirect(
-      `/invoices/${id}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent(
           `Can't change status from ${invoice.status} to ${targetStatus}.`
         )
@@ -410,6 +432,6 @@ export async function setInvoiceStatus(formData: FormData) {
   });
 
   revalidatePath("/invoices");
-  revalidatePath(`/invoices/${id}`);
-  redirect(withSuccess(`/invoices/${id}`, `Status updated to ${targetStatus}`));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, `Status updated to ${targetStatus}`));
 }

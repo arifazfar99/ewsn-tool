@@ -22,6 +22,7 @@ type QuotationFormProps = {
   items: ItemOption[];
   termsTemplates: TermsTemplateOption[];
   quotationId?: string;
+  projectId?: string;
   defaultClientId?: string;
   defaultDate?: string;
   defaultNumber?: string | null;
@@ -40,6 +41,7 @@ export default function QuotationForm({
   items,
   termsTemplates,
   quotationId,
+  projectId,
   defaultClientId,
   defaultDate,
   defaultNumber,
@@ -69,6 +71,7 @@ export default function QuotationForm({
   return (
     <form action={action} className="max-w-3xl space-y-6">
       {quotationId && <input type="hidden" name="id" value={quotationId} />}
+      {projectId && <input type="hidden" name="projectId" value={projectId} />}
 
       <div className="grid grid-cols-2 gap-5">
         <label className="block">
@@ -118,21 +121,33 @@ export default function QuotationForm({
       <div className="grid grid-cols-3 gap-5">
         <label className="block">
           <span className="field-label">Client</span>
-          <select
-            name="clientId"
-            required
-            defaultValue={defaultClientId ?? ""}
-            className="field-input"
-          >
-            <option value="" disabled>
-              Select a client
-            </option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
+          {projectId ? (
+            <>
+              <input type="hidden" name="clientId" value={defaultClientId} />
+              <p
+                className="field-input bg-surface-muted text-ink-soft"
+                aria-label="Client"
+              >
+                {clients.find((c) => c.id === defaultClientId)?.name ?? "—"}
+              </p>
+            </>
+          ) : (
+            <select
+              name="clientId"
+              required
+              defaultValue={defaultClientId ?? ""}
+              className="field-input"
+            >
+              <option value="" disabled>
+                Select a client
               </option>
-            ))}
-          </select>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
 
         <label className="block">
@@ -207,9 +222,9 @@ export default function QuotationForm({
         <button type="submit" className="btn-primary">
           Save
         </button>
-        {quotationId && (
-          <Link href={`/quotations/${quotationId}/preview`} className="link">
-            Preview / Generate PDF
+        {projectId && (
+          <Link href={`/projects/${projectId}`} className="link">
+            Back to Project
           </Link>
         )}
       </div>

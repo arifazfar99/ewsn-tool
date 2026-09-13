@@ -40,17 +40,6 @@ export async function createDepositInvoice(formData: FormData) {
     throw new Error("Missing quotation id");
   }
 
-  const parsed = depositInvoiceSchema.safeParse({
-    quotationId,
-    amount: formData.get("amount")?.toString() ?? "",
-  });
-  if (!parsed.success) {
-    redirect(
-      `/quotations/${quotationId}?error=` +
-        encodeURIComponent("Enter a valid deposit amount greater than zero.")
-    );
-  }
-
   const quotation = await prisma.quotation.findUnique({
     where: { id: quotationId },
     include: { depositInvoice: true },
@@ -58,18 +47,29 @@ export async function createDepositInvoice(formData: FormData) {
   if (!quotation) {
     throw new Error("Quotation not found");
   }
+
+  const parsed = depositInvoiceSchema.safeParse({
+    quotationId,
+    amount: formData.get("amount")?.toString() ?? "",
+  });
+  if (!parsed.success) {
+    redirect(
+      `/projects/${quotation.projectId}?error=` +
+        encodeURIComponent("Enter a valid deposit amount greater than zero.")
+    );
+  }
+
   if (quotation.status !== "ACCEPTED" || quotation.depositInvoice) {
     redirect(
-      `/quotations/${quotationId}?error=` +
+      `/projects/${quotation.projectId}?error=` +
         encodeURIComponent(
           "This quotation must be accepted and not already have a deposit invoice."
         )
     );
   }
 
-  let depositInvoice;
   try {
-    depositInvoice = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const { number, year } = await nextDocumentNumber(tx, "DEPOSIT_INVOICE");
       return tx.depositInvoice.create({
         data: {
@@ -84,17 +84,15 @@ export async function createDepositInvoice(formData: FormData) {
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       redirect(
-        `/quotations/${quotationId}?error=` +
+        `/projects/${quotation.projectId}?error=` +
           encodeURIComponent("A deposit invoice already exists for this quotation.")
       );
     }
     throw e;
   }
 
-  revalidatePath(`/quotations/${quotationId}`);
-  redirect(
-    withSuccess(`/deposit-invoices/${depositInvoice.id}/preview`, "Deposit invoice created")
-  );
+  revalidatePath(`/projects/${quotation.projectId}`);
+  redirect(withSuccess(`/projects/${quotation.projectId}`, "Deposit invoice created"));
 }
 
 // Received/date is metadata, not document content (same reasoning as
@@ -112,19 +110,22 @@ export async function setDepositInvoiceReceived(formData: FormData) {
     throw new Error("Missing deposit invoice id");
   }
 
+  const depositInvoice = await prisma.depositInvoice.findUnique({
+    where: { id },
+    select: { sourceQuotation: { select: { projectId: true } } },
+  });
+  if (!depositInvoice) {
+    throw new Error("Deposit invoice not found");
+  }
+  const projectId = depositInvoice.sourceQuotation?.projectId;
+
   const parsed = receivedSchema.safeParse({
     receivedAt: formData.get("receivedAt")?.toString() ?? "",
   });
   if (!parsed.success) {
     redirect(
-      `/deposit-invoices/${id}/preview?error=` +
-        encodeURIComponent("Enter a valid date received.")
+      `/projects/${projectId}?error=` + encodeURIComponent("Enter a valid date received.")
     );
-  }
-
-  const depositInvoice = await prisma.depositInvoice.findUnique({ where: { id } });
-  if (!depositInvoice) {
-    throw new Error("Deposit invoice not found");
   }
 
   await prisma.depositInvoice.update({
@@ -132,6 +133,6 @@ export async function setDepositInvoiceReceived(formData: FormData) {
     data: { receivedAt: new Date(parsed.data.receivedAt) },
   });
 
-  revalidatePath(`/deposit-invoices/${id}/preview`);
-  redirect(withSuccess(`/deposit-invoices/${id}/preview`, "Marked as received"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Marked as received"));
 }

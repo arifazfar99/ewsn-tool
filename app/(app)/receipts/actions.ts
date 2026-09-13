@@ -28,23 +28,23 @@ export async function issueReceiptForDepositInvoice(formData: FormData) {
 
   const depositInvoice = await prisma.depositInvoice.findUnique({
     where: { id: depositInvoiceId },
-    include: { receipt: true },
+    include: { receipt: true, sourceQuotation: { select: { projectId: true } } },
   });
   if (!depositInvoice) {
     throw new Error("Deposit invoice not found");
   }
+  const projectId = depositInvoice.sourceQuotation?.projectId;
   if (!depositInvoice.receivedAt || depositInvoice.receipt) {
     redirect(
-      `/deposit-invoices/${depositInvoiceId}/preview?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent(
           "This deposit invoice must be marked received and not already have a receipt."
         )
     );
   }
 
-  let receipt;
   try {
-    receipt = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const { number, year } = await nextDocumentNumber(tx, "RECEIPT");
       return tx.receipt.create({
         data: {
@@ -60,15 +60,15 @@ export async function issueReceiptForDepositInvoice(formData: FormData) {
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       redirect(
-        `/deposit-invoices/${depositInvoiceId}/preview?error=` +
+        `/projects/${projectId}?error=` +
           encodeURIComponent("A receipt already exists for this deposit invoice.")
       );
     }
     throw e;
   }
 
-  revalidatePath(`/deposit-invoices/${depositInvoiceId}/preview`);
-  redirect(withSuccess(`/receipts/${receipt.id}/preview`, "Receipt issued"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Receipt issued"));
 }
 
 // Same one-step create+issue pattern, amount recomputed server-side from the
@@ -89,14 +89,19 @@ export async function issueReceiptForInvoice(formData: FormData) {
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
-    include: { lineItems: true, receipt: true },
+    include: {
+      lineItems: true,
+      receipt: true,
+      sourceDeliveryOrder: { select: { sourceQuotation: { select: { projectId: true } } } },
+    },
   });
   if (!invoice) {
     throw new Error("Invoice not found");
   }
+  const projectId = invoice.sourceDeliveryOrder?.sourceQuotation?.projectId;
   if (invoice.status !== "PAID" || invoice.receipt) {
     redirect(
-      `/invoices/${invoiceId}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent(
           "This invoice must be marked Paid and not already have a receipt."
         )
@@ -110,16 +115,15 @@ export async function issueReceiptForInvoice(formData: FormData) {
   );
   if (amount <= 0) {
     redirect(
-      `/invoices/${invoiceId}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent(
           "Nothing left to receipt - the recorded deposit already covers the full total."
         )
     );
   }
 
-  let receipt;
   try {
-    receipt = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const { number, year } = await nextDocumentNumber(tx, "RECEIPT");
       return tx.receipt.create({
         data: {
@@ -140,7 +144,7 @@ export async function issueReceiptForInvoice(formData: FormData) {
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       redirect(
-        `/invoices/${invoiceId}?error=` +
+        `/projects/${projectId}?error=` +
           encodeURIComponent("A receipt already exists for this invoice.")
       );
     }
@@ -148,5 +152,6 @@ export async function issueReceiptForInvoice(formData: FormData) {
   }
 
   revalidatePath(`/invoices/${invoiceId}`);
-  redirect(withSuccess(`/receipts/${receipt.id}/preview`, "Receipt issued"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Receipt issued"));
 }

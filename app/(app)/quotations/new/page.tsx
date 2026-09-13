@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { previewNextDocumentNumber } from "@/lib/numbering";
 import { saveQuotation } from "../actions";
@@ -6,11 +7,17 @@ import QuotationForm from "../QuotationForm";
 export default async function NewQuotationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; projectId?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, projectId } = await searchParams;
+  if (!projectId) {
+    // Every Quotation now lives under a Project - start one there instead
+    // of creating a document with nothing to belong to.
+    notFound();
+  }
 
-  const [clients, items, suggestedNumber, termsTemplates] = await Promise.all([
+  const [project, clients, items, suggestedNumber, termsTemplates] = await Promise.all([
+    prisma.project.findUnique({ where: { id: projectId } }),
     prisma.client.findMany({ orderBy: { name: "asc" } }),
     prisma.item.findMany({
       where: { archived: false },
@@ -19,6 +26,7 @@ export default async function NewQuotationPage({
     previewNextDocumentNumber("QUOTATION"),
     prisma.quotationTermsTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
+  if (!project) notFound();
   const defaultTemplate = termsTemplates.find((t) => t.isDefault);
 
   return (
@@ -29,6 +37,7 @@ export default async function NewQuotationPage({
 
       <QuotationForm
         action={saveQuotation}
+        projectId={project.id}
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         items={items.map((it) => ({
           id: it.id,
@@ -42,8 +51,10 @@ export default async function NewQuotationPage({
           name: t.name,
           text: t.text,
         }))}
+        defaultClientId={project.clientId}
         defaultDate={new Date().toISOString().slice(0, 10)}
         defaultNumber={suggestedNumber}
+        defaultTitle={project.title}
         defaultTermsTemplateId={defaultTemplate?.id ?? ""}
         defaultTermsText={defaultTemplate?.text ?? ""}
       />

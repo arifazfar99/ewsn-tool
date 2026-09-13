@@ -61,7 +61,7 @@ export default async function ReceiptsPage() {
         dateForSort,
         dateLabel: dateForSort.toLocaleDateString("en-MY"),
         daysOutstanding: Math.floor((now - dateForSort.getTime()) / DAY_MS),
-        href: `/deposit-invoices/${di.id}/preview`,
+        href: `/projects/${di.sourceQuotation?.projectId}`,
       };
     }),
     // depositReceived is already credited to its own DepositInvoice/Receipt
@@ -212,9 +212,9 @@ export default async function ReceiptsPage() {
                   <td className="num">RM {r.amount.toFixed(2)}</td>
                   <td className="text-ink-soft">{r.source}</td>
                   <td className="text-right">
-                    <Link href={`/receipts/${r.id}/preview`} className="link">
-                      View
-                    </Link>
+                    <a href={`/api/documents/receipt/${r.id}/pdf`} className="link">
+                      Download
+                    </a>
                   </td>
                 </tr>
               ))}

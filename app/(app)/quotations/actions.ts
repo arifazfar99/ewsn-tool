@@ -120,17 +120,26 @@ export async function saveQuotation(formData: FormData) {
   if (id) {
     const existing = await prisma.quotation.findUnique({
       where: { id },
-      select: { issuedAt: true },
+      select: { issuedAt: true, projectId: true, project: { select: { clientId: true } } },
     });
     if (!existing) {
       throw new Error("Quotation not found");
     }
     if (existing.issuedAt) {
+      // The edit page itself redirects to the Project the instant issuedAt
+      // is set, so an error shown at /quotations/${id} would be dropped
+      // immediately - go straight to the Project instead.
       redirect(
-        `/quotations/${id}?error=` +
+        `/projects/${existing.projectId}?error=` +
           encodeURIComponent(
             "This quotation is already issued and can no longer be edited."
           )
+      );
+    }
+    if (existing.project && clientId !== existing.project.clientId) {
+      redirect(
+        `/quotations/${id}?error=` +
+          encodeURIComponent("Client can't be changed from the Project's own client.")
       );
     }
 
@@ -172,11 +181,30 @@ export async function saveQuotation(formData: FormData) {
     redirect(withSuccess(`/quotations/${id}`, "Quotation saved"));
   }
 
+  const projectId = formData.get("projectId")?.toString();
+  if (!projectId) {
+    throw new Error("Missing project id - every Quotation must belong to a Project");
+  }
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { clientId: true },
+  });
+  if (!project) {
+    throw new Error("Project not found");
+  }
+  if (clientId !== project.clientId) {
+    redirect(
+      `/quotations/new?projectId=${projectId}&error=` +
+        encodeURIComponent("Client can't be changed from the Project's own client.")
+    );
+  }
+
   let created;
   try {
     created = await prisma.$transaction(async (tx) => {
       const quotation = await tx.quotation.create({
         data: {
+          projectId,
           clientId,
           date: new Date(date),
           number: number || null,
@@ -229,8 +257,9 @@ export async function issueQuotation(formData: FormData) {
   }
 
   if (quotation.issuedAt) {
-    // Already issued: nothing to do, re-downloading uses the stored data.
-    redirect(`/quotations/${id}/preview`);
+    // Already issued: nothing to do, re-downloading uses the Download link
+    // on the owning Project.
+    redirect(`/projects/${quotation.projectId}`);
   }
 
   if (quotation.lineItems.length === 0) {
@@ -262,8 +291,8 @@ export async function issueQuotation(formData: FormData) {
 
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);
-  revalidatePath(`/quotations/${id}/preview`);
-  redirect(withSuccess(`/quotations/${id}/preview`, "Quotation issued"));
+  revalidatePath(`/projects/${quotation.projectId}`);
+  redirect(withSuccess(`/projects/${quotation.projectId}`, "Quotation issued"));
 }
 
 const ALLOWED_TRANSITIONS: Record<QuotationStatus, QuotationStatus[]> = {
@@ -295,7 +324,7 @@ export async function setQuotationStatus(formData: FormData) {
 
   const quotation = await prisma.quotation.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, projectId: true },
   });
   if (!quotation) {
     throw new Error("Quotation not found");
@@ -303,7 +332,7 @@ export async function setQuotationStatus(formData: FormData) {
 
   if (!ALLOWED_TRANSITIONS[quotation.status].includes(targetStatus)) {
     redirect(
-      `/quotations/${id}?error=` +
+      `/projects/${quotation.projectId}?error=` +
         encodeURIComponent(
           `Can't change status from ${quotation.status} to ${targetStatus}.`
         )
@@ -325,8 +354,8 @@ export async function setQuotationStatus(formData: FormData) {
   });
 
   revalidatePath("/quotations");
-  revalidatePath(`/quotations/${id}`);
-  redirect(withSuccess(`/quotations/${id}`, `Status updated to ${targetStatus}`));
+  revalidatePath(`/projects/${quotation.projectId}`);
+  redirect(withSuccess(`/projects/${quotation.projectId}`, `Status updated to ${targetStatus}`));
 }
 
 const costSchema = z.object({
@@ -352,24 +381,25 @@ export async function createQuotationCost(formData: FormData) {
     throw new Error("Missing quotation id");
   }
 
-  const parsed = parseCostForm(formData);
-  if (!parsed.success) {
-    redirect(
-      `/quotations/${quotationId}?error=` +
-        encodeURIComponent("Cost label and amount are required.")
-    );
-  }
-
   const quotation = await prisma.quotation.findUnique({
     where: { id: quotationId },
-    select: { issuedAt: true },
+    select: { issuedAt: true, projectId: true },
   });
   if (!quotation) {
     throw new Error("Quotation not found");
   }
+
+  const parsed = parseCostForm(formData);
+  if (!parsed.success) {
+    redirect(
+      `/projects/${quotation.projectId}?error=` +
+        encodeURIComponent("Cost label and amount are required.")
+    );
+  }
+
   if (!quotation.issuedAt) {
     redirect(
-      `/quotations/${quotationId}?error=` +
+      `/projects/${quotation.projectId}?error=` +
         encodeURIComponent("Costs can only be added once the quotation is issued.")
     );
   }
@@ -386,8 +416,8 @@ export async function createQuotationCost(formData: FormData) {
     });
   });
 
-  revalidatePath(`/quotations/${quotationId}`);
-  redirect(withSuccess(`/quotations/${quotationId}`, "Cost added"));
+  revalidatePath(`/projects/${quotation.projectId}`);
+  redirect(withSuccess(`/projects/${quotation.projectId}`, "Cost added"));
 }
 
 export async function updateQuotationCost(formData: FormData) {
@@ -402,24 +432,29 @@ export async function updateQuotationCost(formData: FormData) {
     throw new Error("Missing cost or quotation id");
   }
 
-  const parsed = parseCostForm(formData);
-  if (!parsed.success) {
-    redirect(
-      `/quotations/${quotationId}?error=` +
-        encodeURIComponent("Cost label and amount are required.")
-    );
-  }
-
   const existing = await prisma.quotationCost.findUnique({
     where: { id },
-    select: { quotationId: true, quotation: { select: { issuedAt: true } } },
+    select: {
+      quotationId: true,
+      quotation: { select: { issuedAt: true, projectId: true } },
+    },
   });
   if (!existing || existing.quotationId !== quotationId) {
     throw new Error("Cost not found");
   }
+  const projectId = existing.quotation.projectId;
+
+  const parsed = parseCostForm(formData);
+  if (!parsed.success) {
+    redirect(
+      `/projects/${projectId}?error=` +
+        encodeURIComponent("Cost label and amount are required.")
+    );
+  }
+
   if (!existing.quotation.issuedAt) {
     redirect(
-      `/quotations/${quotationId}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent("Costs can only be edited once the quotation is issued.")
     );
   }
@@ -429,8 +464,8 @@ export async function updateQuotationCost(formData: FormData) {
     data: { label: parsed.data.label, amount: round2(parsed.data.amount) },
   });
 
-  revalidatePath(`/quotations/${quotationId}`);
-  redirect(withSuccess(`/quotations/${quotationId}`, "Cost updated"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Cost updated"));
 }
 
 export async function deleteQuotationCost(formData: FormData) {
@@ -447,20 +482,24 @@ export async function deleteQuotationCost(formData: FormData) {
 
   const existing = await prisma.quotationCost.findUnique({
     where: { id },
-    select: { quotationId: true, quotation: { select: { issuedAt: true } } },
+    select: {
+      quotationId: true,
+      quotation: { select: { issuedAt: true, projectId: true } },
+    },
   });
   if (!existing || existing.quotationId !== quotationId) {
     throw new Error("Cost not found");
   }
+  const projectId = existing.quotation.projectId;
   if (!existing.quotation.issuedAt) {
     redirect(
-      `/quotations/${quotationId}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent("Costs can only be deleted once the quotation is issued.")
     );
   }
 
   await prisma.quotationCost.delete({ where: { id } });
 
-  revalidatePath(`/quotations/${quotationId}`);
-  redirect(withSuccess(`/quotations/${quotationId}`, "Cost deleted"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Cost deleted"));
 }

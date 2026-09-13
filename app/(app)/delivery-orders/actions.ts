@@ -75,14 +75,14 @@ export async function convertQuotationToDeliveryOrder(formData: FormData) {
 
   if (quotation.status !== QuotationStatus.ACCEPTED || quotation.deliveryOrder) {
     redirect(
-      `/quotations/${quotationId}?error=` +
+      `/projects/${quotation.projectId}?error=` +
         encodeURIComponent(
           "Quotation must be accepted and not already converted."
         )
     );
   }
 
-  const deliveryOrder = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     return tx.deliveryOrder.create({
       data: {
         date: new Date(),
@@ -108,11 +108,9 @@ export async function convertQuotationToDeliveryOrder(formData: FormData) {
   });
 
   revalidatePath("/quotations");
-  revalidatePath(`/quotations/${quotationId}`);
   revalidatePath("/delivery-orders");
-  redirect(
-    withSuccess(`/delivery-orders/${deliveryOrder.id}`, "Delivery order created")
-  );
+  revalidatePath(`/projects/${quotation.projectId}`);
+  redirect(withSuccess(`/projects/${quotation.projectId}`, "Delivery order created"));
 }
 
 export async function saveDeliveryOrder(formData: FormData) {
@@ -148,14 +146,17 @@ export async function saveDeliveryOrder(formData: FormData) {
 
   const existing = await prisma.deliveryOrder.findUnique({
     where: { id },
-    select: { issuedAt: true },
+    select: { issuedAt: true, sourceQuotation: { select: { projectId: true } } },
   });
   if (!existing) {
     throw new Error("Delivery order not found");
   }
   if (existing.issuedAt) {
+    // The edit page itself redirects to the Project the instant issuedAt
+    // is set, so an error shown at /delivery-orders/${id} would be dropped
+    // immediately - go straight to the Project instead.
     redirect(
-      `/delivery-orders/${id}?error=` +
+      `/projects/${existing.sourceQuotation?.projectId}?error=` +
         encodeURIComponent(
           "This delivery order is already issued and can no longer be edited."
         )
@@ -205,20 +206,22 @@ export async function issueDeliveryOrder(formData: FormData) {
 
   const deliveryOrder = await prisma.deliveryOrder.findUnique({
     where: { id },
-    include: { lineItems: true },
+    include: { lineItems: true, sourceQuotation: { select: { projectId: true } } },
   });
   if (!deliveryOrder) {
     throw new Error("Delivery order not found");
   }
+  const projectId = deliveryOrder.sourceQuotation?.projectId;
 
   if (deliveryOrder.issuedAt) {
-    // Already issued: nothing to do, re-downloading uses the stored data.
-    redirect(`/delivery-orders/${id}/preview`);
+    // Already issued: nothing to do, re-downloading uses the Download link
+    // on the owning Project.
+    redirect(`/projects/${projectId}`);
   }
 
   if (deliveryOrder.lineItems.length === 0) {
     redirect(
-      `/delivery-orders/${id}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent("Add at least one line item before generating a PDF.")
     );
   }
@@ -237,9 +240,8 @@ export async function issueDeliveryOrder(formData: FormData) {
   });
 
   revalidatePath("/delivery-orders");
-  revalidatePath(`/delivery-orders/${id}`);
-  revalidatePath(`/delivery-orders/${id}/preview`);
-  redirect(withSuccess(`/delivery-orders/${id}/preview`, "Delivery order issued"));
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, "Delivery order issued"));
 }
 
 // Issuing (numbering/PDF) does NOT change status away from DRAFT — a DO can
@@ -266,15 +268,20 @@ export async function setDeliveryOrderStatus(formData: FormData) {
 
   const deliveryOrder = await prisma.deliveryOrder.findUnique({
     where: { id },
-    select: { status: true, issuedAt: true },
+    select: {
+      status: true,
+      issuedAt: true,
+      sourceQuotation: { select: { projectId: true } },
+    },
   });
   if (!deliveryOrder) {
     throw new Error("Delivery order not found");
   }
+  const projectId = deliveryOrder.sourceQuotation?.projectId;
 
   if (!ALLOWED_TRANSITIONS[deliveryOrder.status].includes(targetStatus)) {
     redirect(
-      `/delivery-orders/${id}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent(
           `Can't change status from ${deliveryOrder.status} to ${targetStatus}.`
         )
@@ -283,7 +290,7 @@ export async function setDeliveryOrderStatus(formData: FormData) {
 
   if (targetStatus === DeliveryOrderStatus.DELIVERED && !deliveryOrder.issuedAt) {
     redirect(
-      `/delivery-orders/${id}?error=` +
+      `/projects/${projectId}?error=` +
         encodeURIComponent("Generate the PDF before marking this delivered.")
     );
   }
@@ -303,8 +310,6 @@ export async function setDeliveryOrderStatus(formData: FormData) {
   });
 
   revalidatePath("/delivery-orders");
-  revalidatePath(`/delivery-orders/${id}`);
-  redirect(
-    withSuccess(`/delivery-orders/${id}`, `Status updated to ${targetStatus}`)
-  );
+  revalidatePath(`/projects/${projectId}`);
+  redirect(withSuccess(`/projects/${projectId}`, `Status updated to ${targetStatus}`));
 }

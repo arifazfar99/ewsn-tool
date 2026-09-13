@@ -46,8 +46,8 @@ export default async function QuotationsPage({
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="page-title">Quotations</h1>
-        <Link href="/quotations/new" className="btn-primary">
-          New Quotation
+        <Link href="/projects" className="link">
+          Start a new job from Projects &rarr;
         </Link>
       </div>
 

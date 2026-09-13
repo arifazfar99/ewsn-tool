@@ -1,29 +1,13 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { previewNextDocumentNumber } from "@/lib/numbering";
-import { saveQuotation, setQuotationStatus } from "../actions";
-import { convertQuotationToDeliveryOrder } from "../../delivery-orders/actions";
-import { createDepositInvoice } from "../../deposit-invoices/actions";
+import { saveQuotation } from "../actions";
 import QuotationForm from "../QuotationForm";
-import QuotationCostsManager from "../QuotationCostsManager";
-import { StatusBadge } from "@/components/StatusBadge";
-import { quotationTone } from "@/lib/statusTone";
-import { DocumentStageTracker } from "@/components/DocumentStageTracker";
 
-const NEXT_STATUS_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  SENT: [
-    { value: "ACCEPTED", label: "Accept" },
-    { value: "REJECTED", label: "Reject" },
-    { value: "EXPIRED", label: "Mark Expired" },
-    { value: "VOIDED", label: "Void" },
-  ],
-  ACCEPTED: [{ value: "VOIDED", label: "Void" }],
-  REJECTED: [{ value: "VOIDED", label: "Void" }],
-  EXPIRED: [{ value: "VOIDED", label: "Void" }],
-  VOIDED: [],
-};
-
+// Content stays editable only while a Quotation is still a draft - once
+// issued there's nothing left to do on this page (number/content locked,
+// every workflow action lives on the owning Project's hub now), so this
+// just hands off there.
 export default async function QuotationDetailPage({
   params,
   searchParams,
@@ -36,290 +20,66 @@ export default async function QuotationDetailPage({
 
   const quotation = await prisma.quotation.findUnique({
     where: { id },
-    include: {
-      client: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
-      costs: { orderBy: { sortOrder: "asc" } },
-      deliveryOrder: {
-        include: {
-          invoice: {
-            include: { lineItems: true, receipt: true },
-          },
-        },
-      },
-      depositInvoice: true,
-    },
+    include: { lineItems: { orderBy: { sortOrder: "asc" } } },
   });
   if (!quotation) notFound();
 
-  if (!quotation.issuedAt) {
-    const [clients, items, defaultNumber, termsTemplates] = await Promise.all([
-      prisma.client.findMany({ orderBy: { name: "asc" } }),
-      prisma.item.findMany({
-        where: { archived: false },
-        orderBy: { name: "asc" },
-      }),
-      quotation.number
-        ? Promise.resolve(quotation.number)
-        : previewNextDocumentNumber("QUOTATION"),
-      prisma.quotationTermsTemplate.findMany({ orderBy: { name: "asc" } }),
-    ]);
-
-    return (
-      <div>
-        <h1 className="page-title mb-6">Edit Quotation</h1>
-
-        {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
-
-        <QuotationForm
-          action={saveQuotation}
-          quotationId={quotation.id}
-          clients={clients.map((c) => ({ id: c.id, name: c.name }))}
-          items={items.map((it) => ({
-            id: it.id,
-            name: it.name,
-            nameMs: it.nameMs,
-            unit: it.unit,
-            costPrice: it.costPrice.toNumber(),
-          }))}
-          defaultClientId={quotation.clientId}
-          defaultDate={quotation.date.toISOString().slice(0, 10)}
-          defaultNumber={defaultNumber}
-          defaultTitle={quotation.title ?? ""}
-          defaultLanguage={quotation.language}
-          defaultCustomerSegment={quotation.customerSegment}
-          defaultNotes={quotation.notes ?? ""}
-          defaultLineItems={quotation.lineItems.map((line) => ({
-            itemId: line.itemId,
-            description: line.description,
-            unit: line.unit,
-            quantity: line.quantity.toNumber().toString(),
-            unitPrice: line.unitPrice.toNumber().toString(),
-          }))}
-          termsTemplates={termsTemplates.map((t) => ({
-            id: t.id,
-            name: t.name,
-            text: t.text,
-          }))}
-          defaultTermsTemplateId={quotation.termsTemplateId ?? ""}
-          defaultTermsText={quotation.termsText ?? ""}
-        />
-
-      </div>
-    );
+  if (quotation.issuedAt) {
+    redirect(`/projects/${quotation.projectId}`);
   }
 
-  const total = quotation.lineItems.reduce(
-    (sum, line) => sum + line.lineTotal.toNumber(),
-    0
-  );
-  const transitions = NEXT_STATUS_OPTIONS[quotation.status] ?? [];
+  const [clients, items, defaultNumber, termsTemplates] = await Promise.all([
+    prisma.client.findMany({ orderBy: { name: "asc" } }),
+    prisma.item.findMany({
+      where: { archived: false },
+      orderBy: { name: "asc" },
+    }),
+    quotation.number
+      ? Promise.resolve(quotation.number)
+      : previewNextDocumentNumber("QUOTATION"),
+    prisma.quotationTermsTemplate.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="page-title">Quotation {quotation.number}</h1>
-        <StatusBadge label={quotation.status} tone={quotationTone[quotation.status]} />
-      </div>
+    <div>
+      <h1 className="page-title mb-6">Edit Quotation</h1>
 
-      {quotation.title && (
-        <p className="mb-6 -mt-4 text-sm text-ink-soft">{quotation.title}</p>
-      )}
+      {error && <p className="alert-danger mb-4 max-w-3xl">{error}</p>}
 
-      {error && <p className="alert-danger mb-4">{error}</p>}
-
-      <dl className="panel mb-6 grid grid-cols-2 gap-4 p-4 text-sm">
-        <div>
-          <dt className="eyebrow">Client</dt>
-          <dd className="mt-1 text-ink">{quotation.client.name}</dd>
-        </div>
-        <div>
-          <dt className="eyebrow">Date</dt>
-          <dd className="mt-1 text-ink">
-            {quotation.date.toLocaleDateString("en-MY")}
-          </dd>
-        </div>
-      </dl>
-
-      <DocumentStageTracker
-        quotation={{
-          status: quotation.status,
-          acceptedAt: quotation.acceptedAt,
-          updatedAt: quotation.updatedAt,
-        }}
-        deliveryOrder={
-          quotation.deliveryOrder
-            ? {
-                status: quotation.deliveryOrder.status,
-                deliveredAt: quotation.deliveryOrder.deliveredAt,
-                hasInvoice: quotation.deliveryOrder.invoice != null,
-              }
-            : null
-        }
-        invoice={
-          quotation.deliveryOrder?.invoice
-            ? {
-                status: quotation.deliveryOrder.invoice.status,
-                paidAt: quotation.deliveryOrder.invoice.paidAt,
-                hasReceipt: quotation.deliveryOrder.invoice.receipt != null,
-                total: quotation.deliveryOrder.invoice.lineItems.reduce(
-                  (sum, line) => sum + line.lineTotal.toNumber(),
-                  0
-                ),
-                discountAmount:
-                  quotation.deliveryOrder.invoice.discountAmount?.toNumber() ?? null,
-                depositReceived:
-                  quotation.deliveryOrder.invoice.depositReceived?.toNumber() ??
-                  null,
-              }
-            : null
-        }
-        receipt={
-          quotation.deliveryOrder?.invoice?.receipt
-            ? { issuedAt: quotation.deliveryOrder.invoice.receipt.issuedAt }
-            : null
-        }
-        depositInvoice={
-          quotation.depositInvoice
-            ? {
-                amount: quotation.depositInvoice.amount.toNumber(),
-                receivedAt: quotation.depositInvoice.receivedAt,
-              }
-            : null
-        }
-      />
-
-      <div className="overflow-x-auto">
-      <table className="data-table mb-4">
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Qty</th>
-            <th>Unit Price</th>
-            <th>Line Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {quotation.lineItems.map((line) => (
-            <tr key={line.id}>
-              <td>{line.description}</td>
-              <td className="num">
-                {line.unit
-                  ? `${line.quantity.toNumber()} ${line.unit}`
-                  : line.quantity.toNumber()}
-              </td>
-              <td className="num">RM {line.unitPrice.toNumber().toFixed(2)}</td>
-              <td className="num">RM {line.lineTotal.toNumber().toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-
-      <p className="mb-6 text-right text-sm font-medium text-ink">
-        Total: <span className="font-mono">RM {total.toFixed(2)}</span>
-      </p>
-
-      {quotation.notes && (
-        <div className="mb-6">
-          <h2 className="eyebrow mb-1">Notes</h2>
-          <p className="text-sm text-ink-soft">{quotation.notes}</p>
-        </div>
-      )}
-
-      {quotation.termsText && (
-        <div className="mb-6">
-          <h2 className="eyebrow mb-1">Terms &amp; Conditions</h2>
-          <p className="text-sm text-ink-soft">{quotation.termsText}</p>
-        </div>
-      )}
-
-      <Link
-        href={`/quotations/${quotation.id}/preview`}
-        className="link mb-8 inline-block"
-      >
-        View / Download PDF
-      </Link>
-
-      <QuotationCostsManager
+      <QuotationForm
+        action={saveQuotation}
         quotationId={quotation.id}
-        costs={quotation.costs.map((c) => ({
-          id: c.id,
-          label: c.label,
-          amount: c.amount.toNumber(),
+        projectId={quotation.projectId ?? undefined}
+        clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+        items={items.map((it) => ({
+          id: it.id,
+          name: it.name,
+          nameMs: it.nameMs,
+          unit: it.unit,
+          costPrice: it.costPrice.toNumber(),
         }))}
-        totalSales={total}
+        defaultClientId={quotation.clientId}
+        defaultDate={quotation.date.toISOString().slice(0, 10)}
+        defaultNumber={defaultNumber}
+        defaultTitle={quotation.title ?? ""}
+        defaultLanguage={quotation.language}
+        defaultCustomerSegment={quotation.customerSegment}
+        defaultNotes={quotation.notes ?? ""}
+        defaultLineItems={quotation.lineItems.map((line) => ({
+          itemId: line.itemId,
+          description: line.description,
+          unit: line.unit,
+          quantity: line.quantity.toNumber().toString(),
+          unitPrice: line.unitPrice.toNumber().toString(),
+        }))}
+        termsTemplates={termsTemplates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          text: t.text,
+        }))}
+        defaultTermsTemplateId={quotation.termsTemplateId ?? ""}
+        defaultTermsText={quotation.termsText ?? ""}
       />
-
-      {quotation.status === "ACCEPTED" &&
-        (quotation.deliveryOrder ? (
-          <div className="mb-8">
-            <Link
-              href={`/delivery-orders/${quotation.deliveryOrder.id}`}
-              className="link"
-            >
-              View Delivery Order &rarr;
-            </Link>
-          </div>
-        ) : (
-          <form action={convertQuotationToDeliveryOrder} className="mb-8">
-            <input type="hidden" name="quotationId" value={quotation.id} />
-            <button type="submit" className="btn-secondary">
-              Convert to Delivery Order
-            </button>
-          </form>
-        ))}
-
-      {quotation.depositInvoice ? (
-        <div className="mb-8">
-          <Link
-            href={`/deposit-invoices/${quotation.depositInvoice.id}/preview`}
-            className="link"
-          >
-            View Deposit Invoice &rarr;
-          </Link>
-        </div>
-      ) : (
-        quotation.status === "ACCEPTED" && (
-          <form action={createDepositInvoice} className="mb-8 max-w-xs">
-            <input type="hidden" name="quotationId" value={quotation.id} />
-            <label className="block">
-              <span className="field-label">Deposit Amount (RM)</span>
-              <input
-                type="number"
-                name="amount"
-                step="0.01"
-                min="0.01"
-                defaultValue={(total * 0.5).toFixed(2)}
-                className="field-input"
-              />
-            </label>
-            <button type="submit" className="btn-secondary mt-3">
-              Create Deposit Invoice
-            </button>
-          </form>
-        ))}
-
-      {transitions.length > 0 && (
-        <form
-          action={setQuotationStatus}
-          className="flex flex-wrap items-center gap-2 border-t border-border pt-6"
-        >
-          <input type="hidden" name="id" value={quotation.id} />
-          <span className="eyebrow mr-2">Change status:</span>
-          {transitions.map((t) => (
-            <button
-              key={t.value}
-              type="submit"
-              name="status"
-              value={t.value}
-              className="btn-secondary"
-            >
-              {t.label}
-            </button>
-          ))}
-        </form>
-      )}
     </div>
   );
 }

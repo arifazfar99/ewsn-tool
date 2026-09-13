@@ -5,6 +5,11 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 import { buildStages, statusLine } from "@/lib/documentStage";
 
+const PROGRESS_TONE = {
+  progress: "bg-primary-soft text-primary",
+  danger: "bg-danger-soft text-danger",
+} as const;
+
 export default async function QuotationsPage({
   searchParams,
 }: {
@@ -44,16 +49,11 @@ export default async function QuotationsPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="page-title">Quotations</h1>
-        <Link href="/projects" className="link">
-          Start a new job from Projects &rarr;
-        </Link>
-      </div>
+      <h1 className="page-title mb-5">Quotations</h1>
 
       <form
         method="get"
-        className="panel mb-6 flex flex-wrap items-end gap-3 p-4"
+        className="panel mb-5 flex flex-wrap items-end gap-3 p-3.5"
       >
         <div>
           <label className="field-label">Client</label>
@@ -111,37 +111,39 @@ export default async function QuotationsPage({
             Clear filters
           </Link>
         )}
+        <Link href="/projects" className="link ml-auto">
+          Start a new job from Projects &rarr;
+        </Link>
       </form>
 
       {quotations.length === 0 ? (
         <p className="text-sm text-ink-soft">No quotations yet.</p>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Number</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Progress</th>
-              <th>Total</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {quotations.map((q) => {
-              const total = q.lineItems.reduce(
-                (sum, line) => sum + line.lineTotal.toNumber(),
-                0
-              );
-              // Status only tells you DRAFT/SENT/ACCEPTED/etc, which stays
-              // "ACCEPTED" forever whether the job just started or was fully
-              // paid and receipted months ago - Progress reuses the same
-              // stage logic the Quotation detail page's tracker uses so both
-              // views agree on what "currently active" means.
-              const progress = statusLine(
-                buildStages({
+        <div className="overflow-x-auto rounded-md border border-border bg-surface">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {["Number", "Client", "Date", "Status", "Progress"].map((h) => (
+                  <th
+                    key={h}
+                    className="border-b border-border bg-surface-muted px-4 py-2.5 text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-soft"
+                  >
+                    {h}
+                  </th>
+                ))}
+                <th className="border-b border-border bg-surface-muted px-4 py-2.5 text-right text-[10.5px] font-bold uppercase tracking-wide text-ink-soft">
+                  Total
+                </th>
+                <th className="border-b border-border bg-surface-muted px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {quotations.map((q) => {
+                const total = q.lineItems.reduce(
+                  (sum, line) => sum + line.lineTotal.toNumber(),
+                  0
+                );
+                const stages = buildStages({
                   quotation: { status: q.status, acceptedAt: q.acceptedAt },
                   deliveryOrder: q.deliveryOrder
                     ? {
@@ -160,38 +162,66 @@ export default async function QuotationsPage({
                   receipt: q.deliveryOrder?.invoice?.receipt
                     ? { issuedAt: q.deliveryOrder.invoice.receipt.issuedAt }
                     : null,
-                })
-              );
-              return (
-                <tr key={q.id}>
-                  <td className="num">{q.number ?? "DRAFT"}</td>
-                  <td>
-                    {q.client.name}
-                    {q.title && (
-                      <span className="block text-xs text-ink-soft">
-                        {q.title}
+                });
+                // Progress only tells you DRAFT/SENT/ACCEPTED/etc, which stays
+                // "ACCEPTED" forever whether the job just started or was fully
+                // paid and receipted months ago - Progress reuses the same
+                // stage logic the Project hub's tracker uses so both views
+                // agree on what "currently active" means.
+                const progress = statusLine(stages);
+                const tone =
+                  stages.some((s) => s.state === "negative") ||
+                  q.deliveryOrder?.invoice?.status === "UNPAID"
+                    ? "danger"
+                    : "progress";
+                return (
+                  <tr
+                    key={q.id}
+                    className="border-b border-border/60 last:border-b-0 hover:bg-surface-muted/60"
+                  >
+                    <td className="px-4 py-2.5 font-mono tabular-nums">
+                      {q.number ?? "DRAFT"}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {q.client.name}
+                      {q.title && (
+                        <span className="mt-0.5 block text-xs text-ink-soft">
+                          {q.title}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-ink-soft">
+                      {q.date.toLocaleDateString("en-MY")}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <StatusBadge
+                        label={q.status}
+                        tone={quotationTone[q.status]}
+                      />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-semibold before:h-1.5 before:w-1.5 before:rounded-full before:bg-current ${PROGRESS_TONE[tone]}`}
+                      >
+                        {progress}
                       </span>
-                    )}
-                  </td>
-                  <td>{q.date.toLocaleDateString("en-MY")}</td>
-                  <td>
-                    <StatusBadge
-                      label={q.status}
-                      tone={quotationTone[q.status]}
-                    />
-                  </td>
-                  <td className="text-sm text-ink-soft">{progress}</td>
-                  <td className="num">RM {total.toFixed(2)}</td>
-                  <td className="text-right">
-                    <Link href={`/quotations/${q.id}`} className="link">
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                      RM {total.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Link
+                        href={`/quotations/${q.id}`}
+                        className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-soft"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

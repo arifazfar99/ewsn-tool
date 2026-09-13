@@ -44,13 +44,11 @@ export default async function InvoicesPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="page-title">Invoices</h1>
-      </div>
+      <h1 className="page-title mb-5">Invoices</h1>
 
       <form
         method="get"
-        className="panel mb-6 flex flex-wrap items-end gap-3 p-4"
+        className="panel mb-5 flex flex-wrap items-end gap-3 p-3.5"
       >
         <div>
           <label className="field-label">Client</label>
@@ -115,62 +113,74 @@ export default async function InvoicesPage({
           No invoices yet. Convert an issued delivery order to create one.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Number</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Source Delivery Order</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id}>
-                <td className="num">{inv.number ?? "DRAFT"}</td>
-                <td>
-                  {inv.client.name}
-                  {inv.title && (
-                    <span className="block text-xs text-ink-soft">
-                      {inv.title}
-                    </span>
-                  )}
-                </td>
-                <td>{inv.date.toLocaleDateString("en-MY")}</td>
-                <td>
-                  <StatusBadge label={inv.status} tone={invoiceTone[inv.status]} />
-                </td>
-                <td>
-                  {inv.sourceDeliveryOrder ? (
-                    <Link
-                      href={`/projects/${inv.sourceDeliveryOrder.sourceQuotation?.projectId}`}
-                      className="link"
+        <div className="overflow-x-auto rounded-md border border-border bg-surface">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {["Number", "Client", "Date", "Status", "Source Delivery Order"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="border-b border-border bg-surface-muted px-4 py-2.5 text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-soft"
                     >
-                      {inv.sourceDeliveryOrder.number ?? "DRAFT"}
-                    </Link>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td className="text-right">
-                  <Link
-                    href={
-                      inv.sourceDeliveryOrder?.sourceQuotation?.projectId
-                        ? `/projects/${inv.sourceDeliveryOrder.sourceQuotation.projectId}`
-                        : `/invoices/${inv.id}`
-                    }
-                    className="link"
-                  >
-                    View
-                  </Link>
-                </td>
+                      {h}
+                    </th>
+                  )
+                )}
+                <th className="border-b border-border bg-surface-muted px-4 py-2.5" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
+                <tr
+                  key={inv.id}
+                  className="border-b border-border/60 last:border-b-0 hover:bg-surface-muted/60"
+                >
+                  <td className="px-4 py-2.5 font-mono tabular-nums">
+                    {inv.number ?? "DRAFT"}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {inv.client.name}
+                    {inv.title && (
+                      <span className="mt-0.5 block text-xs text-ink-soft">
+                        {inv.title}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-ink-soft">
+                    {inv.date.toLocaleDateString("en-MY")}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <StatusBadge label={inv.status} tone={invoiceTone[inv.status]} />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {inv.sourceDeliveryOrder ? (
+                      <Link
+                        href={`/projects/${inv.sourceDeliveryOrder.sourceQuotation?.projectId}`}
+                        className="link"
+                      >
+                        {inv.sourceDeliveryOrder.number ?? "DRAFT"}
+                      </Link>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <Link
+                      href={
+                        inv.sourceDeliveryOrder?.sourceQuotation?.projectId
+                          ? `/projects/${inv.sourceDeliveryOrder.sourceQuotation.projectId}`
+                          : `/invoices/${inv.id}`
+                      }
+                      className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-soft"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

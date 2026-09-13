@@ -42,13 +42,11 @@ export default async function DeliveryOrdersPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="page-title">Delivery Orders</h1>
-      </div>
+      <h1 className="page-title mb-5">Delivery Orders</h1>
 
       <form
         method="get"
-        className="panel mb-6 flex flex-wrap items-end gap-3 p-4"
+        className="panel mb-5 flex flex-wrap items-end gap-3 p-3.5"
       >
         <div>
           <label className="field-label">Client</label>
@@ -113,65 +111,77 @@ export default async function DeliveryOrdersPage({
           No delivery orders yet. Convert an accepted quotation to create one.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Number</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Source Quotation</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {deliveryOrders.map((d) => (
-              <tr key={d.id}>
-                <td className="num">{d.number ?? "DRAFT"}</td>
-                <td>
-                  {d.client.name}
-                  {d.title && (
-                    <span className="block text-xs text-ink-soft">
-                      {d.title}
-                    </span>
-                  )}
-                </td>
-                <td>{d.date.toLocaleDateString("en-MY")}</td>
-                <td>
-                  <StatusBadge
-                    label={d.status}
-                    tone={deliveryOrderTone[d.status]}
-                  />
-                </td>
-                <td>
-                  {d.sourceQuotation ? (
-                    <Link
-                      href={`/projects/${d.sourceQuotation.projectId}`}
-                      className="link"
+        <div className="overflow-x-auto rounded-md border border-border bg-surface">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {["Number", "Client", "Date", "Status", "Source Quotation"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="border-b border-border bg-surface-muted px-4 py-2.5 text-left text-[10.5px] font-bold uppercase tracking-wide text-ink-soft"
                     >
-                      {d.sourceQuotation.number ?? "DRAFT"}
-                    </Link>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td className="text-right">
-                  <Link
-                    href={
-                      d.sourceQuotation
-                        ? `/projects/${d.sourceQuotation.projectId}`
-                        : `/delivery-orders/${d.id}`
-                    }
-                    className="link"
-                  >
-                    View
-                  </Link>
-                </td>
+                      {h}
+                    </th>
+                  )
+                )}
+                <th className="border-b border-border bg-surface-muted px-4 py-2.5" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {deliveryOrders.map((d) => (
+                <tr
+                  key={d.id}
+                  className="border-b border-border/60 last:border-b-0 hover:bg-surface-muted/60"
+                >
+                  <td className="px-4 py-2.5 font-mono tabular-nums">
+                    {d.number ?? "DRAFT"}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {d.client.name}
+                    {d.title && (
+                      <span className="mt-0.5 block text-xs text-ink-soft">
+                        {d.title}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-ink-soft">
+                    {d.date.toLocaleDateString("en-MY")}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <StatusBadge
+                      label={d.status}
+                      tone={deliveryOrderTone[d.status]}
+                    />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {d.sourceQuotation ? (
+                      <Link
+                        href={`/projects/${d.sourceQuotation.projectId}`}
+                        className="link"
+                      >
+                        {d.sourceQuotation.number ?? "DRAFT"}
+                      </Link>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <Link
+                      href={
+                        d.sourceQuotation
+                          ? `/projects/${d.sourceQuotation.projectId}`
+                          : `/delivery-orders/${d.id}`
+                      }
+                      className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-soft"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

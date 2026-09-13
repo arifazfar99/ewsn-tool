@@ -11,7 +11,7 @@ export default async function DashboardPage() {
     unpaidInvoices,
     pendingDepositInvoiceReceiptCount,
     pendingReceiptInvoices,
-    activeQuotationCandidates,
+    activeProjectCandidates,
   ] = await Promise.all([
     prisma.quotation.count(),
     prisma.quotation.count({ where: { status: "ACCEPTED" } }),
@@ -30,24 +30,45 @@ export default async function DashboardPage() {
       where: { status: "PAID", receipt: null },
       include: { lineItems: true },
     }),
-    // REJECTED/EXPIRED/VOIDED quotations can never be active regardless of
-    // what's downstream, so they're excluded here rather than relying on
-    // isActive() to filter every row after the fact.
-    prisma.quotation.findMany({
-      where: { status: { notIn: ["REJECTED", "EXPIRED", "VOIDED"] } },
+    // A Project with no Quotation yet (still "Discussing") is always active -
+    // only a Quotation reaching REJECTED/EXPIRED/VOIDED can kill a job, and
+    // that can't have happened before one even exists.
+    prisma.project.findMany({
+      where: {
+        OR: [
+          { quotation: null },
+          { quotation: { status: { notIn: ["REJECTED", "EXPIRED", "VOIDED"] } } },
+        ],
+      },
       include: {
         client: true,
-        lineItems: true,
-        deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+        quotation: {
+          include: {
+            lineItems: true,
+            deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+          },
+        },
       },
-      orderBy: { date: "asc" },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 
   // Oldest first - a job that's been sitting half-finished the longest is
   // the one most worth Araz noticing, same reasoning as Pending Receipts.
-  const activeQuotations = activeQuotationCandidates
-    .map((q) => {
+  const activeProjects = activeProjectCandidates
+    .map((p) => {
+      const q = p.quotation;
+      if (!q) {
+        return {
+          id: p.id,
+          client: p.client.name,
+          title: p.title,
+          date: p.createdAt,
+          total: 0,
+          progress: "Discussing - no quotation yet.",
+          active: true,
+        };
+      }
       const stages = buildStages({
         quotation: { status: q.status, acceptedAt: q.acceptedAt },
         deliveryOrder: q.deliveryOrder
@@ -69,18 +90,16 @@ export default async function DashboardPage() {
           : null,
       });
       return {
-        id: q.id,
-        projectId: q.projectId,
-        number: q.number,
-        client: q.client.name,
-        title: q.title,
-        date: q.date,
+        id: p.id,
+        client: p.client.name,
+        title: p.title,
+        date: p.createdAt,
         total: q.lineItems.reduce((sum, line) => sum + line.lineTotal.toNumber(), 0),
         progress: statusLine(stages),
         active: isActive(stages),
       };
     })
-    .filter((q) => q.active);
+    .filter((p) => p.active);
 
   const unpaidTotal = unpaidInvoices.reduce(
     (sum, inv) =>
@@ -159,16 +178,16 @@ export default async function DashboardPage() {
       </div>
 
       <h2 className="mb-3 text-base font-semibold text-ink">
-        Active Quotations
+        Active Projects
       </h2>
-      {activeQuotations.length === 0 ? (
+      {activeProjects.length === 0 ? (
         <p className="text-sm text-ink-soft">Nothing currently in progress.</p>
       ) : (
         <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Number</th>
+              <th>Project</th>
               <th>Client</th>
               <th>Date</th>
               <th>Progress</th>
@@ -177,20 +196,15 @@ export default async function DashboardPage() {
             </tr>
           </thead>
           <tbody>
-            {activeQuotations.map((q) => (
-              <tr key={q.id}>
-                <td className="num">{q.number ?? "DRAFT"}</td>
-                <td className="text-ink-soft">
-                  {q.client}
-                  {q.title && (
-                    <span className="block text-xs text-ink-soft">{q.title}</span>
-                  )}
-                </td>
-                <td className="text-ink-soft">{q.date.toLocaleDateString("en-MY")}</td>
-                <td className="text-ink-soft">{q.progress}</td>
-                <td className="num">RM {q.total.toFixed(2)}</td>
+            {activeProjects.map((p) => (
+              <tr key={p.id}>
+                <td>{p.title ?? p.client}</td>
+                <td className="text-ink-soft">{p.client}</td>
+                <td className="text-ink-soft">{p.date.toLocaleDateString("en-MY")}</td>
+                <td className="text-ink-soft">{p.progress}</td>
+                <td className="num">RM {p.total.toFixed(2)}</td>
                 <td className="text-right">
-                  <Link href={`/projects/${q.projectId}`} className="link">
+                  <Link href={`/projects/${p.id}`} className="link">
                     View
                   </Link>
                 </td>

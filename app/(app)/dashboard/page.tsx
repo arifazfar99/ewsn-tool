@@ -182,7 +182,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="max-w-4xl space-y-7">
+    <div className="space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="page-title">Dashboard</h1>

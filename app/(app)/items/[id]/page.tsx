@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { updateItem, toggleItemArchived } from "../actions";
 import { StatusBadge } from "@/components/StatusBadge";
+import ItemForm from "../ItemForm";
 
 export default async function EditItemPage({
   params,
@@ -18,86 +19,30 @@ export default async function EditItemPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="page-title">Edit Item</h1>
-        {item.archived && <StatusBadge label="ARCHIVED" tone="pending" />}
-      </div>
+      {item.archived && (
+        <div className="mb-4 max-w-2xl">
+          <StatusBadge label="ARCHIVED" tone="pending" />
+        </div>
+      )}
+      {error && <p className="alert-danger mb-4 max-w-2xl">{error}</p>}
 
-      {error && <p className="alert-danger mb-4 max-w-xl">{error}</p>}
+      <ItemForm
+        action={updateItem}
+        itemId={item.id}
+        defaultName={item.name}
+        defaultNameMs={item.nameMs ?? ""}
+        defaultDescription={item.description ?? ""}
+        defaultUnit={item.unit}
+        defaultCostPrice={item.costPrice.toString()}
+        archiveSlot={
+          <button type="submit" form="toggle-archived" className="btn-secondary">
+            {item.archived ? "Unarchive" : "Archive"}
+          </button>
+        }
+      />
 
-      <form action={updateItem} className="max-w-xl space-y-5">
+      <form id="toggle-archived" action={toggleItemArchived}>
         <input type="hidden" name="id" value={item.id} />
-
-        <label className="block">
-          <span className="field-label">Name</span>
-          <input
-            type="text"
-            name="name"
-            required
-            defaultValue={item.name}
-            className="field-input"
-          />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Malay Name (optional)</span>
-          <input
-            type="text"
-            name="nameMs"
-            defaultValue={item.nameMs ?? ""}
-            className="field-input"
-          />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Description</span>
-          <textarea
-            name="description"
-            rows={3}
-            defaultValue={item.description ?? ""}
-            className="field-input"
-          />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Unit (e.g. pcs, hour)</span>
-          <input
-            type="text"
-            name="unit"
-            required
-            defaultValue={item.unit}
-            className="field-input"
-          />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Cost Price (supplier / Shopee)</span>
-          <input
-            type="number"
-            name="costPrice"
-            step="0.01"
-            min="0"
-            required
-            defaultValue={item.costPrice.toString()}
-            className="field-input"
-          />
-          <p className="mt-1 text-xs text-ink-soft">
-            Sell price is computed automatically per customer segment (Direct
-            +25%, SME +30%, Government +50%) when this item is added to a
-            document.
-          </p>
-        </label>
-
-        <button type="submit" className="btn-primary">
-          Save
-        </button>
-      </form>
-
-      <form action={toggleItemArchived} className="mt-8 max-w-xl">
-        <input type="hidden" name="id" value={item.id} />
-        <button type="submit" className="btn-secondary">
-          {item.archived ? "Unarchive" : "Archive"}
-        </button>
       </form>
     </div>
   );

@@ -1,4 +1,5 @@
 import { createItem } from "../actions";
+import ItemForm from "../ItemForm";
 
 export default async function NewItemPage({
   searchParams,
@@ -9,52 +10,8 @@ export default async function NewItemPage({
 
   return (
     <div>
-      <h1 className="page-title mb-6">New Item</h1>
-
-      {error && <p className="alert-danger mb-4 max-w-xl">{error}</p>}
-
-      <form action={createItem} className="max-w-xl space-y-5">
-        <label className="block">
-          <span className="field-label">Name</span>
-          <input type="text" name="name" required className="field-input" />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Malay Name (optional)</span>
-          <input type="text" name="nameMs" className="field-input" />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Description</span>
-          <textarea name="description" rows={3} className="field-input" />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Unit (e.g. pcs, hour)</span>
-          <input type="text" name="unit" required className="field-input" />
-        </label>
-
-        <label className="block">
-          <span className="field-label">Cost Price (supplier / Shopee)</span>
-          <input
-            type="number"
-            name="costPrice"
-            step="0.01"
-            min="0"
-            required
-            className="field-input"
-          />
-          <p className="mt-1 text-xs text-ink-soft">
-            Sell price is computed automatically per customer segment (Direct
-            +25%, SME +30%, Government +50%) when this item is added to a
-            document.
-          </p>
-        </label>
-
-        <button type="submit" className="btn-primary">
-          Create
-        </button>
-      </form>
+      {error && <p className="alert-danger mb-4 max-w-2xl">{error}</p>}
+      <ItemForm action={createItem} />
     </div>
   );
 }

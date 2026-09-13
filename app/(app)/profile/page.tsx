@@ -19,8 +19,8 @@ export default async function ProfilePage() {
   };
 
   return (
-    <div>
-      <h1 className="page-title mb-6">Business Profile</h1>
+    <div className="space-y-6">
+      <h1 className="page-title">Business Profile</h1>
       <ProfileForm
         profile={{
           logoDataUrl: resolvedProfile.logoDataUrl,
@@ -33,9 +33,6 @@ export default async function ProfilePage() {
         }}
       />
 
-      <h2 className="mb-4 mt-10 text-lg font-semibold text-ink">
-        Quotation Terms Templates
-      </h2>
       <TermsTemplatesManager templates={templates} />
     </div>
   );

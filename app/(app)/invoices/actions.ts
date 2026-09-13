@@ -101,7 +101,11 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
 
   const deliveryOrder = await prisma.deliveryOrder.findUnique({
     where: { id: deliveryOrderId },
-    include: { lineItems: true, invoice: true },
+    include: {
+      lineItems: true,
+      invoice: true,
+      sourceQuotation: { include: { depositInvoice: true } },
+    },
   });
   if (!deliveryOrder) {
     throw new Error("Delivery order not found");
@@ -124,6 +128,13 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
     where: { id: "singleton" },
   });
 
+  // A deposit collected earlier via a Deposit Invoice against the source
+  // Quotation is otherwise invisible here - without this, the final Invoice
+  // shows the full total as still owing even though part of it was already
+  // paid and receipted.
+  const receivedDeposit = deliveryOrder.sourceQuotation?.depositInvoice;
+  const carryDeposit = receivedDeposit?.receivedAt != null;
+
   const invoice = await prisma.$transaction(async (tx) => {
     return tx.invoice.create({
       data: {
@@ -135,6 +146,8 @@ export async function convertDeliveryOrderToInvoice(formData: FormData) {
         notes: deliveryOrder.notes,
         sourceDeliveryOrderId: deliveryOrder.id,
         bankDetailsText: profile?.bankDetailsText ?? "",
+        depositReceived: carryDeposit ? receivedDeposit.amount : null,
+        depositReceivedAt: carryDeposit ? receivedDeposit.receivedAt : null,
         lineItems: {
           create: deliveryOrder.lineItems.map((line) => ({
             itemId: line.itemId,

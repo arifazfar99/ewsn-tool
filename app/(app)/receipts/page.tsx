@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import type { BadgeTone } from "@/lib/statusTone";
-import { invoiceBalanceDue } from "@/lib/money";
+import { invoiceUncreditedAmount } from "@/lib/money";
 
 type PendingRow = {
   type: "Deposit Invoice" | "Invoice";
@@ -39,9 +39,9 @@ export default async function ReceiptsPage() {
         orderBy: { receivedAt: "asc" },
       }),
       prisma.invoice.findMany({
-        where: { status: "PAID", receipt: null },
-        include: { client: true, lineItems: true },
-        orderBy: { paidAt: "asc" },
+        where: { issuedAt: { not: null }, status: { not: "VOIDED" } },
+        include: { client: true, receipts: true },
+        orderBy: { depositReceivedAt: "asc" },
       }),
       prisma.receipt.findMany({
         include: {
@@ -74,15 +74,19 @@ export default async function ReceiptsPage() {
     // depositReceived is already credited to its own DepositInvoice/Receipt
     // pair (or hand-typed with no DepositInvoice at all) - this mirrors the
     // exact amount calc issueReceiptForInvoice uses so a fully-covered
-    // invoice never shows a stale positive amount here.
+    // invoice never shows a stale positive amount here. This is the
+    // uncredited delta (received minus already-receipted), not the overall
+    // balance still owed - an UNPAID invoice with a partial payment already
+    // receipted correctly drops off this list once that payment is credited,
+    // even though the invoice itself still owes more.
     ...pendingInvoices
       .map((inv) => {
-        const amount = invoiceBalanceDue(inv.lineItems, inv.discountAmount, inv.depositReceived);
-        // paidAt is set on every transition into PAID (see setInvoiceStatus)
-        // and cleared on any transition away from it, so it's always present
-        // for a row this query can return; updatedAt is kept only as a
-        // defensive fallback for a pre-migration row the backfill missed.
-        const dateForSort = inv.paidAt ?? inv.updatedAt;
+        const amount = invoiceUncreditedAmount(inv.depositReceived, inv.receipts.map((r) => r.amount));
+        // depositReceivedAt is the most meaningful "when did this money
+        // actually show up" signal for a partially-paid, still-UNPAID
+        // invoice (which has no paidAt yet); falls back to paidAt, then
+        // updatedAt as a last resort for a pre-migration row.
+        const dateForSort = inv.depositReceivedAt ?? inv.paidAt ?? inv.updatedAt;
         return {
           type: "Invoice" as const,
           client: inv.client.name,

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import DocumentPdf from "@/lib/pdf/DocumentPdf";
 import type { DocumentLanguage } from "@/lib/pdf/labels";
+import { invoiceBalanceDue } from "@/lib/money";
 
 export async function GET(
   _req: Request,
@@ -23,7 +24,7 @@ export async function GET(
         sourceDepositInvoice: {
           include: { sourceQuotation: { include: { client: true } } },
         },
-        sourceInvoice: { include: { client: true } },
+        sourceInvoice: { include: { client: true, lineItems: true, receipts: true } },
       },
     }),
     prisma.businessProfile.findUnique({ where: { id: "singleton" } }),
@@ -47,18 +48,48 @@ export async function GET(
   };
   let description: string;
   let language: DocumentLanguage;
+  let notes: string | null = null;
 
   if (receipt.sourceDepositInvoice?.sourceQuotation) {
     const quotation = receipt.sourceDepositInvoice.sourceQuotation;
     client = quotation.client;
-    description = `Deposit received for Quotation ${quotation.number}${
-      quotation.title ? ` — ${quotation.title}` : ""
-    } (Deposit Invoice ${receipt.sourceDepositInvoice.number})`;
+    // Prefer the snapshot taken at issuance (see issueReceiptForDepositInvoice)
+    // over recomputing live - falls back to live computation only for a
+    // pre-2026-09-14 row that predates the description column existing.
+    description =
+      receipt.description ??
+      `Deposit received for Quotation ${quotation.number}${
+        quotation.title ? ` — ${quotation.title}` : ""
+      } (Deposit Invoice ${receipt.sourceDepositInvoice.number})`;
     language = quotation.language;
   } else if (receipt.sourceInvoice) {
-    client = receipt.sourceInvoice.client;
-    description = `Payment received for Invoice ${receipt.sourceInvoice.number}`;
-    language = receipt.sourceInvoice.language;
+    const invoice = receipt.sourceInvoice;
+    client = invoice.client;
+    language = invoice.language;
+    if (receipt.description != null) {
+      // Normal path: description/notes were snapshotted at issuance (see
+      // issueReceiptForInvoice) so they can't drift when later
+      // receipts/deposit edits change the invoice's live state.
+      description = receipt.description;
+      notes = receipt.notes;
+    } else {
+      // Pre-2026-09-14 row with no snapshot - fall back to a live
+      // computation. Only ever wrong in the same way old rows always were
+      // (relative to today's state, not the state at issuance), no
+      // regression versus this route's previous behavior.
+      const balanceRemaining = invoiceBalanceDue(
+        invoice.lineItems,
+        invoice.discountAmount,
+        invoice.depositReceived
+      );
+      const isOnlyReceipt = invoice.receipts.length === 1;
+      description =
+        isOnlyReceipt && balanceRemaining <= 0
+          ? `Payment received for Invoice ${invoice.number}`
+          : balanceRemaining > 0
+            ? `Partial payment received for Invoice ${invoice.number}`
+            : `Final payment received for Invoice ${invoice.number}`;
+    }
   } else {
     return new Response("Not found", { status: 404 });
   }
@@ -91,7 +122,7 @@ export async function GET(
       },
     ],
     title: null,
-    notes: null,
+    notes,
     language,
     footerLabel: null,
     footerText: null,

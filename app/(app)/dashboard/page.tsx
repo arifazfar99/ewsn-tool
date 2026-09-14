@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { round2, invoiceBalanceDue } from "@/lib/money";
+import { round2, invoiceBalanceDue, invoiceUncreditedAmount } from "@/lib/money";
 import { buildStages, statusLine, isActive } from "@/lib/documentStage";
 
 const PILL_TONE: Record<"discussing" | "progress" | "danger", string> = {
@@ -37,8 +37,8 @@ export default async function DashboardPage() {
       where: { receivedAt: { not: null }, receipt: null },
     }),
     prisma.invoice.findMany({
-      where: { status: "PAID", receipt: null },
-      include: { lineItems: true },
+      where: { issuedAt: { not: null }, status: { not: "VOIDED" } },
+      include: { receipts: true },
     }),
     // A Project with no Quotation yet (still "Discussing") is always active -
     // only a Quotation reaching REJECTED/EXPIRED/VOIDED can kill a job, and
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
         quotation: {
           include: {
             lineItems: true,
-            deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+            deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
           },
         },
       },
@@ -92,12 +92,19 @@ export default async function DashboardPage() {
           ? {
               status: q.deliveryOrder.invoice.status,
               paidAt: q.deliveryOrder.invoice.paidAt,
-              hasReceipt: q.deliveryOrder.invoice.receipt != null,
             }
           : null,
-        receipt: q.deliveryOrder?.invoice?.receipt
-          ? { issuedAt: q.deliveryOrder.invoice.receipt.issuedAt }
-          : null,
+        receipt:
+          q.deliveryOrder?.invoice && q.deliveryOrder.invoice.receipts.length > 0
+            ? {
+                count: q.deliveryOrder.invoice.receipts.length,
+                latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
+                remaining: invoiceUncreditedAmount(
+                  q.deliveryOrder.invoice.depositReceived,
+                  q.deliveryOrder.invoice.receipts.map((r) => r.amount)
+                ),
+              }
+            : null,
       });
       return {
         id: p.id,
@@ -133,12 +140,12 @@ export default async function DashboardPage() {
 
   const netSales = round2(totalSales - totalCosts);
 
-  // A hand-typed depositReceived can already cover an invoice's full total
-  // with no formal DepositInvoice/Receipt pair required for that money -
-  // issueReceiptForInvoice blocks issuance once nothing is left, so such an
-  // invoice isn't counted as pending here either (matches app/(app)/receipts).
+  // Counts invoices with money received but not yet receipted - not the
+  // same thing as an unpaid balance (invoiceBalanceDue). An invoice can be
+  // fully receipted for everything paid so far while still owing more, or
+  // still UNPAID with a partial payment that's already been receipted.
   const pendingInvoiceReceiptCount = pendingReceiptInvoices.filter(
-    (inv) => invoiceBalanceDue(inv.lineItems, inv.discountAmount, inv.depositReceived) > 0
+    (inv) => invoiceUncreditedAmount(inv.depositReceived, inv.receipts.map((r) => r.amount)) > 0
   ).length;
 
   const pendingReceiptCount =

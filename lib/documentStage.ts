@@ -19,9 +19,8 @@ export type StageInput = {
   invoice: {
     status: "DRAFT" | "UNPAID" | "PAID" | "VOIDED";
     paidAt: Date | null;
-    hasReceipt: boolean;
   } | null;
-  receipt: { issuedAt: Date | null } | null;
+  receipt: { count: number; latestIssuedAt: Date | null; remaining: number } | null;
 };
 
 function fmt(date: Date) {
@@ -71,7 +70,7 @@ export function buildStages(props: StageInput): Stage[] {
     ? { label: "Invoice", state: "upcoming", sub: "" }
     : invoice.status === "VOIDED"
       ? { label: "Invoice", state: "negative", sub: "Voided" }
-      : invoice.hasReceipt
+      : invoice.status === "PAID"
         ? {
             label: "Invoice",
             state: "done",
@@ -80,17 +79,22 @@ export function buildStages(props: StageInput): Stage[] {
         : {
             label: "Invoice",
             state: "active",
-            sub:
-              invoice.status === "PAID"
-                ? "Paid, awaiting receipt"
-                : invoice.status === "DRAFT"
-                  ? "Drafting"
-                  : "Unpaid",
+            sub: invoice.status === "DRAFT" ? "Drafting" : "Unpaid",
           };
 
-  const stage4: Stage = !receipt
+  const stage4: Stage = !receipt || receipt.count === 0
     ? { label: "Receipt", state: "upcoming", sub: "" }
-    : { label: "Receipt", state: "done", sub: receipt.issuedAt ? `Issued ${fmt(receipt.issuedAt)}` : "Issued" };
+    : receipt.remaining > 0
+      ? {
+          label: "Receipt",
+          state: "active",
+          sub: `${receipt.count} issued - RM ${receipt.remaining.toFixed(2)} uncredited`,
+        }
+      : {
+          label: "Receipt",
+          state: "done",
+          sub: receipt.latestIssuedAt ? `Issued ${fmt(receipt.latestIssuedAt)}` : "Issued",
+        };
 
   return [stage1, stage2, stage3, stage4];
 }
@@ -112,10 +116,7 @@ export function statusLine(stages: Stage[]): string {
   if (current.label === "Quotation") return current.sub === "Sent" ? "Quotation sent - awaiting decision." : "Preparing quotation.";
   if (current.label === "Delivery Order") return current.sub === "Pending" ? "Accepted - preparing delivery order." : "Goods delivered - invoice pending.";
   if (current.label === "Invoice")
-    return current.sub === "Unpaid"
-      ? "Invoice issued - awaiting payment."
-      : current.sub === "Drafting"
-        ? "Preparing invoice."
-        : "Paid - receipt pending.";
+    return current.sub === "Unpaid" ? "Invoice issued - awaiting payment." : "Preparing invoice.";
+  if (current.label === "Receipt") return `Partially receipted - ${current.sub.split(" - ")[1] ?? "balance outstanding"}.`;
   return "";
 }

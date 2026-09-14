@@ -54,9 +54,11 @@ model Client {
 }
 
 // The hub a job lives under before a Quotation exists (discussion notes) and
-// after (progress + actions) - wraps exactly one Quotation->DO->Invoice->
-// Receipt chain, never more than one, see Project Resources/project-plan.md
-// 2026-09-13 for the full Project Hub feature this backs.
+// after (progress + actions) - wraps exactly one Quotation->DO->Invoice
+// chain (each of those stays 1:1); the Invoice at the end of that chain can
+// have multiple Receipts, one per payment installment (see the Receipt
+// model). See Project Resources/project-plan.md 2026-09-13 for the full
+// Project Hub feature this backs.
 model Project {
   id        String     @id @default(cuid())
   title     String?
@@ -278,7 +280,7 @@ model Invoice {
   updatedAt             DateTime         @updatedAt
 
   lineItems InvoiceLineItem[]
-  receipt   Receipt?
+  receipts  Receipt[]
 }
 
 model InvoiceLineItem {
@@ -304,15 +306,31 @@ model InvoiceLineItem {
 // specifically because SetNull would leave both columns null on delete,
 // which the CHECK constraint forbids - Restrict fails the delete cleanly
 // instead of hitting a raw constraint-violation error.
+// sourceDepositInvoiceId stays 1:1 - a Deposit Invoice is always one lump
+// sum received atomically. sourceInvoiceId is deliberately NOT unique - an
+// Invoice can have many Receipts, one per payment installment received (see
+// lib/money.ts's invoiceUncreditedAmount for how each new receipt's amount
+// is computed as the delta since the last one).
 model Receipt {
   id                     String          @id @default(cuid())
   number                 String?         @unique
   year                   Int?
   date                   DateTime        @default(now())
   amount                 Decimal         @db.Decimal(12, 2)
+  // Description/notes text is computed once, at issuance, and stored here -
+  // not recomputed from the invoice's live state every time the PDF is
+  // downloaded. An Invoice's receipts/lineItems/depositReceived can all
+  // change after this receipt was issued (more receipts, an edited invoice
+  // once fully unlocked again), so a live computation would let re-printing
+  // an older receipt retroactively change what it says (e.g. relabel a
+  // partial payment as "Final" once a later receipt exists). Both null on
+  // pre-2026-09-14 rows (before this field existed) - the PDF route falls
+  // back to a generic description for those.
+  description            String?
+  notes                  String?
   sourceDepositInvoiceId String?         @unique
   sourceDepositInvoice   DepositInvoice? @relation(fields: [sourceDepositInvoiceId], references: [id], onDelete: Restrict)
-  sourceInvoiceId        String?         @unique
+  sourceInvoiceId        String?
   sourceInvoice          Invoice?        @relation(fields: [sourceInvoiceId], references: [id], onDelete: Restrict)
   issuedAt               DateTime?
   createdAt              DateTime        @default(now())

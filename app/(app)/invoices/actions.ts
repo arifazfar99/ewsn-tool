@@ -205,21 +205,28 @@ export async function saveInvoice(formData: FormData) {
   }));
   const year = parseYearFromNumber(number);
 
-  // Content stays editable after issuance — the one exception is once a
-  // Receipt exists, since its amount is fixed at issuance and would
-  // silently disagree with a later-edited invoice (same reasoning as the
-  // deposit lock in setInvoiceDeposit's callers).
+  // Content stays editable after issuance — the one exception is once ANY
+  // Receipt exists against it (partial or final), since a receipt's amount
+  // and printed description are fixed at issuance and would silently
+  // disagree with a later-edited invoice. Locking on receipt-existence
+  // rather than status === "PAID" matters: PAID -> UNPAID is an allowed,
+  // UI-exposed transition (Mark Unpaid), so a status-only lock could be
+  // released with one click even while already-issued receipts reference
+  // the current line items. This is stricter than "wait until fully
+  // settled" - once real money has been formally receipted against
+  // specific line items, those items must stay frozen to protect the
+  // integrity of that receipt, not just once the whole invoice is paid.
   const existing = await prisma.invoice.findUnique({
     where: { id },
     select: {
-      receipt: { select: { id: true } },
+      receipts: { select: { id: true }, take: 1 },
       sourceDeliveryOrder: { select: { sourceQuotation: { select: { projectId: true } } } },
     },
   });
   if (!existing) {
     throw new Error("Invoice not found");
   }
-  if (existing.receipt) {
+  if (existing.receipts.length > 0) {
     redirect(
       `/projects/${existing.sourceDeliveryOrder?.sourceQuotation?.projectId}?error=` +
         encodeURIComponent(

@@ -4,6 +4,7 @@ import { QuotationStatus, Prisma } from "@/generated/prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 import { buildStages, statusLine } from "@/lib/documentStage";
+import { invoiceUncreditedAmount } from "@/lib/money";
 
 const PROGRESS_TONE = {
   progress: "bg-primary-soft text-primary",
@@ -37,7 +38,7 @@ export default async function QuotationsPage({
       include: {
         client: true,
         lineItems: true,
-        deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+        deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -156,12 +157,19 @@ export default async function QuotationsPage({
                     ? {
                         status: q.deliveryOrder.invoice.status,
                         paidAt: q.deliveryOrder.invoice.paidAt,
-                        hasReceipt: q.deliveryOrder.invoice.receipt != null,
                       }
                     : null,
-                  receipt: q.deliveryOrder?.invoice?.receipt
-                    ? { issuedAt: q.deliveryOrder.invoice.receipt.issuedAt }
-                    : null,
+                  receipt:
+                    q.deliveryOrder?.invoice && q.deliveryOrder.invoice.receipts.length > 0
+                      ? {
+                          count: q.deliveryOrder.invoice.receipts.length,
+                          latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
+                          remaining: invoiceUncreditedAmount(
+                            q.deliveryOrder.invoice.depositReceived,
+                            q.deliveryOrder.invoice.receipts.map((r) => r.amount)
+                          ),
+                        }
+                      : null,
                 });
                 // Progress only tells you DRAFT/SENT/ACCEPTED/etc, which stays
                 // "ACCEPTED" forever whether the job just started or was fully

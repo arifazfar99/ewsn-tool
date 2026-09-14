@@ -6,8 +6,11 @@ import InvoiceForm from "../InvoiceForm";
 
 // Invoice content stays editable even after issuance (the one real exception
 // in this codebase - see CLAUDE.md), so this page keeps working right up
-// until a Receipt exists for it. Deposit editing and status transitions live
-// on the owning Project's hub now, not here - this page is content only.
+// until ANY Receipt exists against it (partial or final) - not status ===
+// "PAID", since Mark Unpaid is a real one-click transition that would
+// otherwise silently reopen editing on an invoice already-issued receipts
+// depend on. Deposit editing and status transitions live on the owning
+// Project's hub now, not here - this page is content only.
 export default async function InvoiceDetailPage({
   params,
   searchParams,
@@ -23,7 +26,7 @@ export default async function InvoiceDetailPage({
     include: {
       client: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
-      receipt: true,
+      receipts: { select: { id: true }, take: 1 },
       sourceDeliveryOrder: {
         include: { sourceQuotation: { select: { projectId: true } } },
       },
@@ -33,7 +36,7 @@ export default async function InvoiceDetailPage({
 
   const projectId = invoice.sourceDeliveryOrder?.sourceQuotation?.projectId;
 
-  if (invoice.receipt) {
+  if (invoice.receipts.length > 0) {
     redirect(`/projects/${projectId}`);
   }
 

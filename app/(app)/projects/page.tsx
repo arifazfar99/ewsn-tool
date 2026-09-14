@@ -4,6 +4,7 @@ import { QuotationStatus, Prisma } from "@/generated/prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 import { buildStages, statusLine } from "@/lib/documentStage";
+import { invoiceUncreditedAmount } from "@/lib/money";
 
 export default async function ProjectsPage({
   searchParams,
@@ -34,7 +35,7 @@ export default async function ProjectsPage({
         quotation: {
           include: {
             lineItems: true,
-            deliveryOrder: { include: { invoice: { include: { receipt: true } } } },
+            deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
           },
         },
       },
@@ -154,12 +155,19 @@ export default async function ProjectsPage({
                           ? {
                               status: q.deliveryOrder.invoice.status,
                               paidAt: q.deliveryOrder.invoice.paidAt,
-                              hasReceipt: q.deliveryOrder.invoice.receipt != null,
                             }
                           : null,
-                        receipt: q.deliveryOrder?.invoice?.receipt
-                          ? { issuedAt: q.deliveryOrder.invoice.receipt.issuedAt }
-                          : null,
+                        receipt:
+                          q.deliveryOrder?.invoice && q.deliveryOrder.invoice.receipts.length > 0
+                            ? {
+                                count: q.deliveryOrder.invoice.receipts.length,
+                                latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
+                                remaining: invoiceUncreditedAmount(
+                                  q.deliveryOrder.invoice.depositReceived,
+                                  q.deliveryOrder.invoice.receipts.map((r) => r.amount)
+                                ),
+                              }
+                            : null,
                       })
                     )
                   : "Discussing - no quotation yet.";

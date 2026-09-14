@@ -24,3 +24,19 @@ export function invoiceBalanceDue(
 ): number {
   return round2(sumLineItems(lineItems) - toNumber(discountAmount) - toNumber(depositReceived));
 }
+
+// Amount to credit on a NEW Receipt for an Invoice. depositReceived is
+// already "cumulative amount received to date" (see setInvoiceDeposit) -
+// not additive - so this is the delta since the last receipt: the running
+// total minus the sum of every Receipt already issued against this invoice.
+// Never crashes on null/zero input - callers treat <= 0 as "nothing new".
+export function invoiceUncreditedAmount(
+  depositReceived: Prisma.Decimal | number | null | undefined,
+  existingReceiptAmounts: (Prisma.Decimal | number)[]
+): number {
+  const receivedSoFar = toNumber(depositReceived);
+  const alreadyReceipted = round2(
+    existingReceiptAmounts.map(toNumber).reduce((sum, n) => sum + n, 0)
+  );
+  return round2(receivedSoFar - alreadyReceipted);
+}

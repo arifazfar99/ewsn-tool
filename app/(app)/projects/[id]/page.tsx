@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { buildStages, statusLine, type Stage } from "@/lib/documentStage";
-import { invoiceBalanceDue, sumLineItems } from "@/lib/money";
+import { invoiceBalanceDue, invoiceUncreditedAmount, sumLineItems } from "@/lib/money";
 import { saveProjectNotes } from "../actions";
 import { issueQuotation, setQuotationStatus } from "../../quotations/actions";
 import { createDepositInvoice, setDepositInvoiceReceived } from "../../deposit-invoices/actions";
@@ -70,7 +70,7 @@ export default async function ProjectDetailPage({
               invoice: {
                 include: {
                   lineItems: true,
-                  receipt: true,
+                  receipts: true,
                 },
               },
             },
@@ -85,7 +85,14 @@ export default async function ProjectDetailPage({
   const depositInvoice = q?.depositInvoice ?? null;
   const deliveryOrder = q?.deliveryOrder ?? null;
   const invoice = deliveryOrder?.invoice ?? null;
-  const receipt = invoice?.receipt ?? null;
+  const receipts = invoice?.receipts ?? [];
+  // Delta since the last receipt - how much of what's been received hasn't
+  // been receipted yet. Drives the Issue Receipt button's visibility and
+  // amount; an invoice can now have several receipts over its life, one per
+  // payment installment, so "a receipt exists" no longer means "settled".
+  const uncreditedAmount = invoice
+    ? invoiceUncreditedAmount(invoice.depositReceived, receipts.map((r) => r.amount))
+    : 0;
 
   const stages = q
     ? buildStages({
@@ -101,10 +108,16 @@ export default async function ProjectDetailPage({
           ? {
               status: invoice.status,
               paidAt: invoice.paidAt,
-              hasReceipt: receipt != null,
             }
           : null,
-        receipt: receipt ? { issuedAt: receipt.issuedAt } : null,
+        receipt:
+          receipts.length > 0
+            ? {
+                count: receipts.length,
+                latestIssuedAt: receipts.at(-1)?.issuedAt ?? null,
+                remaining: uncreditedAmount,
+              }
+            : null,
       })
     : null;
 
@@ -119,7 +132,7 @@ export default async function ProjectDetailPage({
         ? depositInvoice.amount.toNumber()
         : null;
 
-  const isPaidInFull = invoice?.status === "PAID" || receipt != null;
+  const isPaidInFull = invoice?.status === "PAID";
 
   const activeTotal = invoice
     ? sumLineItems(invoice.lineItems)
@@ -420,7 +433,7 @@ export default async function ProjectDetailPage({
               </div>
             )}
 
-            {invoice?.issuedAt && !receipt && (
+            {invoice?.issuedAt && !(invoice.status === "PAID" && uncreditedAmount <= 0) && (
               <div>
                 <div className="flex flex-wrap gap-2">
                   {invoice.status === "UNPAID" && (
@@ -432,20 +445,20 @@ export default async function ProjectDetailPage({
                     </form>
                   )}
                   {invoice.status === "PAID" && (
-                    <>
-                      <form action={setInvoiceStatus}>
-                        <input type="hidden" name="id" value={invoice.id} />
-                        <button type="submit" name="status" value="UNPAID" className="btn-secondary">
-                          Mark Unpaid
-                        </button>
-                      </form>
-                      <form action={issueReceiptForInvoice}>
-                        <input type="hidden" name="invoiceId" value={invoice.id} />
-                        <button type="submit" className="btn-primary">
-                          Issue Receipt
-                        </button>
-                      </form>
-                    </>
+                    <form action={setInvoiceStatus}>
+                      <input type="hidden" name="id" value={invoice.id} />
+                      <button type="submit" name="status" value="UNPAID" className="btn-secondary">
+                        Mark Unpaid
+                      </button>
+                    </form>
+                  )}
+                  {uncreditedAmount > 0 && (
+                    <form action={issueReceiptForInvoice}>
+                      <input type="hidden" name="invoiceId" value={invoice.id} />
+                      <button type="submit" className="btn-primary">
+                        Issue Receipt ({money(uncreditedAmount)})
+                      </button>
+                    </form>
                   )}
                   <form action={setInvoiceStatus}>
                     <input type="hidden" name="id" value={invoice.id} />
@@ -455,6 +468,17 @@ export default async function ProjectDetailPage({
                   </form>
                 </div>
                 <div className="mt-4 border-t border-primary/20 pt-1">
+                  {receipts.length > 0 && (
+                    <p className="mb-2 text-xs text-ink-soft">
+                      {receipts.length} receipt{receipts.length === 1 ? "" : "s"} issued so far
+                      {uncreditedAmount > 0
+                        ? ` - ${money(uncreditedAmount)} received but not yet receipted`
+                        : uncreditedAmount < 0
+                          ? ` - ${money(Math.abs(uncreditedAmount))} more receipted than recorded as received - check the deposit figure`
+                          : " - fully credited"}
+                      .
+                    </p>
+                  )}
                   <DepositForm
                     invoiceId={invoice.id}
                     defaultDepositReceived={invoice.depositReceived?.toNumber().toString() ?? ""}
@@ -462,6 +486,9 @@ export default async function ProjectDetailPage({
                       invoice.depositReceivedAt ? invoice.depositReceivedAt.toISOString().slice(0, 10) : ""
                     }
                   />
+                  <p className="mt-1.5 text-xs text-ink-soft">
+                    Enter the running total received to date, not just this payment.
+                  </p>
                 </div>
               </div>
             )}
@@ -515,13 +542,14 @@ export default async function ProjectDetailPage({
                     href={`/api/documents/invoice/${invoice.id}/pdf`}
                   />
                 )}
-                {receipt && (
+                {receipts.map((r) => (
                   <DocRow
-                    name={`Receipt ${receipt.number ?? "DRAFT"}`}
-                    meta={receipt.issuedAt ? `Issued ${receipt.issuedAt.toLocaleDateString("en-MY")}` : ""}
-                    href={`/api/documents/receipt/${receipt.id}/pdf`}
+                    key={r.id}
+                    name={`Receipt ${r.number ?? "DRAFT"} (${money(r.amount.toNumber())})`}
+                    meta={r.issuedAt ? `Issued ${r.issuedAt.toLocaleDateString("en-MY")}` : ""}
+                    href={`/api/documents/receipt/${r.id}/pdf`}
                   />
-                )}
+                ))}
                 {depositInvoice?.receipt && (
                   <DocRow
                     name={`Receipt (deposit) ${depositInvoice.receipt.number ?? "DRAFT"}`}

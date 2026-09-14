@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { round2, invoiceBalanceDue, invoiceUncreditedAmount, invoiceReceiptedAmounts } from "@/lib/money";
+import { round2, invoiceBalanceDue, invoiceUncreditedAmountFor } from "@/lib/money";
 import { buildStages, statusLine, isActive } from "@/lib/documentStage";
 
 const PILL_TONE: Record<"discussing" | "progress" | "danger", string> = {
@@ -41,6 +41,9 @@ export default async function DashboardPage() {
       where: { issuedAt: { not: null }, status: { not: "VOIDED" } },
       include: {
         receipts: true,
+        // Needed by invoiceUncreditedAmountFor to reconstruct pre-2026-09-14
+        // receipts' implied deposit-at-the-time - not otherwise displayed here.
+        lineItems: true,
         sourceDeliveryOrder: {
           select: {
             sourceQuotation: {
@@ -66,7 +69,9 @@ export default async function DashboardPage() {
           include: {
             lineItems: true,
             depositInvoice: { select: { receipt: { select: { amount: true } } } },
-            deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
+            deliveryOrder: {
+              include: { invoice: { include: { receipts: true, lineItems: true } } },
+            },
           },
         },
       },
@@ -110,12 +115,9 @@ export default async function DashboardPage() {
             ? {
                 count: q.deliveryOrder.invoice.receipts.length,
                 latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
-                remaining: invoiceUncreditedAmount(
-                  q.deliveryOrder.invoice.depositReceived,
-                  invoiceReceiptedAmounts(
-                    q.deliveryOrder.invoice.receipts,
-                    q.depositInvoice?.receipt?.amount
-                  )
+                remaining: invoiceUncreditedAmountFor(
+                  q.deliveryOrder.invoice,
+                  q.depositInvoice?.receipt?.amount
                 ),
               }
             : null,
@@ -160,12 +162,9 @@ export default async function DashboardPage() {
   // still UNPAID with a partial payment that's already been receipted.
   const pendingInvoiceReceiptCount = pendingReceiptInvoices.filter(
     (inv) =>
-      invoiceUncreditedAmount(
-        inv.depositReceived,
-        invoiceReceiptedAmounts(
-          inv.receipts,
-          inv.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
-        )
+      invoiceUncreditedAmountFor(
+        inv,
+        inv.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
       ) > 0
   ).length;
 

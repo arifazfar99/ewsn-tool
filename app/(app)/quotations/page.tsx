@@ -4,7 +4,7 @@ import { QuotationStatus, Prisma } from "@/generated/prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 import { buildStages, statusLine } from "@/lib/documentStage";
-import { invoiceUncreditedAmount, invoiceReceiptedAmounts } from "@/lib/money";
+import { invoiceUncreditedAmountFor } from "@/lib/money";
 
 const PROGRESS_TONE = {
   progress: "bg-primary-soft text-primary",
@@ -39,7 +39,9 @@ export default async function QuotationsPage({
         client: true,
         lineItems: true,
         depositInvoice: { select: { receipt: { select: { amount: true } } } },
-        deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
+        deliveryOrder: {
+          include: { invoice: { include: { receipts: true, lineItems: true } } },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -165,12 +167,9 @@ export default async function QuotationsPage({
                       ? {
                           count: q.deliveryOrder.invoice.receipts.length,
                           latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
-                          remaining: invoiceUncreditedAmount(
-                            q.deliveryOrder.invoice.depositReceived,
-                            invoiceReceiptedAmounts(
-                              q.deliveryOrder.invoice.receipts,
-                              q.depositInvoice?.receipt?.amount
-                            )
+                          remaining: invoiceUncreditedAmountFor(
+                            q.deliveryOrder.invoice,
+                            q.depositInvoice?.receipt?.amount
                           ),
                         }
                       : null,

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import type { BadgeTone } from "@/lib/statusTone";
-import { invoiceUncreditedAmount, invoiceReceiptedAmounts } from "@/lib/money";
+import { invoiceUncreditedAmountFor } from "@/lib/money";
 
 type PendingRow = {
   type: "Deposit Invoice" | "Invoice";
@@ -43,6 +43,9 @@ export default async function ReceiptsPage() {
         include: {
           client: true,
           receipts: true,
+          // Needed by invoiceUncreditedAmountFor to reconstruct pre-2026-09-14
+          // receipts' implied deposit-at-the-time - not otherwise displayed here.
+          lineItems: true,
           sourceDeliveryOrder: {
             select: {
               sourceQuotation: {
@@ -91,12 +94,9 @@ export default async function ReceiptsPage() {
     // even though the invoice itself still owes more.
     ...pendingInvoices
       .map((inv) => {
-        const amount = invoiceUncreditedAmount(
-          inv.depositReceived,
-          invoiceReceiptedAmounts(
-            inv.receipts,
-            inv.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
-          )
+        const amount = invoiceUncreditedAmountFor(
+          inv,
+          inv.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
         );
         // depositReceivedAt is the most meaningful "when did this money
         // actually show up" signal for a partially-paid, still-UNPAID

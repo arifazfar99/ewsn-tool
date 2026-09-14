@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { buildStages, statusLine, type Stage } from "@/lib/documentStage";
-import { invoiceBalanceDue, invoiceUncreditedAmount, invoiceReceiptedAmounts, sumLineItems } from "@/lib/money";
+import { invoiceBalanceDue, invoiceUncreditedAmountFor, sumLineItems } from "@/lib/money";
 import { saveProjectNotes } from "../actions";
 import { issueQuotation, setQuotationStatus } from "../../quotations/actions";
 import { createDepositInvoice, setDepositInvoiceReceived } from "../../deposit-invoices/actions";
@@ -91,10 +91,7 @@ export default async function ProjectDetailPage({
   // amount; an invoice can now have several receipts over its life, one per
   // payment installment, so "a receipt exists" no longer means "settled".
   const uncreditedAmount = invoice
-    ? invoiceUncreditedAmount(
-        invoice.depositReceived,
-        invoiceReceiptedAmounts(receipts, depositInvoice?.receipt?.amount)
-      )
+    ? invoiceUncreditedAmountFor(invoice, depositInvoice?.receipt?.amount)
     : 0;
 
   const stages = q

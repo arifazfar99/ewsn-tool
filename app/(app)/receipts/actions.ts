@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { nextDocumentNumber } from "@/lib/numbering";
-import { invoiceBalanceDue, invoiceUncreditedAmount, invoiceReceiptedAmounts, round2 } from "@/lib/money";
+import { invoiceBalanceDue, invoiceUncreditedAmountFor, round2 } from "@/lib/money";
 
 function withSuccess(path: string, message: string) {
   return `${path}?success=${encodeURIComponent(message)}`;
@@ -154,12 +154,9 @@ export async function issueReceiptForInvoice(formData: FormData) {
   // customer who's only paid part of the invoice can now get a receipt for
   // exactly what they paid, without the invoice needing to be fully PAID
   // first. See lib/money.ts's invoiceUncreditedAmount.
-  const amount = invoiceUncreditedAmount(
-    invoice.depositReceived,
-    invoiceReceiptedAmounts(
-      invoice.receipts,
-      invoice.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
-    )
+  const amount = invoiceUncreditedAmountFor(
+    invoice,
+    invoice.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
   );
   if (amount <= 0) {
     redirect(

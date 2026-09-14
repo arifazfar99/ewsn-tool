@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { nextDocumentNumber } from "@/lib/numbering";
-import { invoiceBalanceDue, invoiceUncreditedAmount, round2 } from "@/lib/money";
+import { invoiceBalanceDue, invoiceUncreditedAmount, invoiceReceiptedAmounts, round2 } from "@/lib/money";
 
 function withSuccess(path: string, message: string) {
   return `${path}?success=${encodeURIComponent(message)}`;
@@ -30,7 +30,14 @@ export async function issueReceiptForDepositInvoice(formData: FormData) {
     where: { id: depositInvoiceId },
     include: {
       receipt: true,
-      sourceQuotation: { select: { projectId: true, number: true, title: true } },
+      sourceQuotation: {
+        select: {
+          projectId: true,
+          number: true,
+          title: true,
+          deliveryOrder: { select: { invoice: { select: { id: true } } } },
+        },
+      },
     },
   });
   if (!depositInvoice) {
@@ -42,6 +49,19 @@ export async function issueReceiptForDepositInvoice(formData: FormData) {
       `/projects/${projectId}?error=` +
         encodeURIComponent(
           "This deposit invoice must be marked received and not already have a receipt."
+        )
+    );
+  }
+  // Once an Invoice exists, this same received deposit is already tracked
+  // (and receiptable) through the Invoice's own Issue Receipt action instead
+  // - issuing here too would create a second Receipt for the same payment.
+  // The UI already hides this button in that case; this is the server-side
+  // backstop against calling the action directly.
+  if (depositInvoice.sourceQuotation?.deliveryOrder?.invoice) {
+    redirect(
+      `/projects/${projectId}?error=` +
+        encodeURIComponent(
+          "This deposit has already been carried into the Invoice - issue its receipt from there instead."
         )
     );
   }
@@ -105,7 +125,16 @@ export async function issueReceiptForInvoice(formData: FormData) {
     include: {
       receipts: true,
       lineItems: true,
-      sourceDeliveryOrder: { select: { sourceQuotation: { select: { projectId: true } } } },
+      sourceDeliveryOrder: {
+        select: {
+          sourceQuotation: {
+            select: {
+              projectId: true,
+              depositInvoice: { select: { receipt: { select: { amount: true } } } },
+            },
+          },
+        },
+      },
     },
   });
   if (!invoice) {
@@ -127,7 +156,10 @@ export async function issueReceiptForInvoice(formData: FormData) {
   // first. See lib/money.ts's invoiceUncreditedAmount.
   const amount = invoiceUncreditedAmount(
     invoice.depositReceived,
-    invoice.receipts.map((r) => r.amount)
+    invoiceReceiptedAmounts(
+      invoice.receipts,
+      invoice.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
+    )
   );
   if (amount <= 0) {
     redirect(

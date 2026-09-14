@@ -40,3 +40,20 @@ export function invoiceUncreditedAmount(
   );
   return round2(receivedSoFar - alreadyReceipted);
 }
+
+// The "existing receipt amounts" to feed invoiceUncreditedAmount for an
+// Invoice - its own Receipts, PLUS (if present) the amount already
+// receipted through the sibling Deposit Invoice. That money gets carried
+// into Invoice.depositReceived at DO->Invoice conversion time (see
+// convertDeliveryOrderToInvoice) but was receipted through a completely
+// separate document/Receipt (sourceDepositInvoiceId, not sourceInvoiceId) -
+// without this, invoiceUncreditedAmount would re-offer to receipt money
+// that already has a receipt, from a different document.
+export function invoiceReceiptedAmounts(
+  invoiceReceipts: { amount: Prisma.Decimal | number }[],
+  depositInvoiceReceiptAmount?: Prisma.Decimal | number | null
+): (Prisma.Decimal | number)[] {
+  const amounts = invoiceReceipts.map((r) => r.amount);
+  if (depositInvoiceReceiptAmount != null) amounts.push(depositInvoiceReceiptAmount);
+  return amounts;
+}

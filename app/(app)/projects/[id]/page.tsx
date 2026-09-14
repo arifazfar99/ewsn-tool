@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { buildStages, statusLine, type Stage } from "@/lib/documentStage";
-import { invoiceBalanceDue, invoiceUncreditedAmount, sumLineItems } from "@/lib/money";
+import { invoiceBalanceDue, invoiceUncreditedAmount, invoiceReceiptedAmounts, sumLineItems } from "@/lib/money";
 import { saveProjectNotes } from "../actions";
 import { issueQuotation, setQuotationStatus } from "../../quotations/actions";
 import { createDepositInvoice, setDepositInvoiceReceived } from "../../deposit-invoices/actions";
@@ -91,7 +91,10 @@ export default async function ProjectDetailPage({
   // amount; an invoice can now have several receipts over its life, one per
   // payment installment, so "a receipt exists" no longer means "settled".
   const uncreditedAmount = invoice
-    ? invoiceUncreditedAmount(invoice.depositReceived, receipts.map((r) => r.amount))
+    ? invoiceUncreditedAmount(
+        invoice.depositReceived,
+        invoiceReceiptedAmounts(receipts, depositInvoice?.receipt?.amount)
+      )
     : 0;
 
   const stages = q
@@ -493,7 +496,11 @@ export default async function ProjectDetailPage({
               </div>
             )}
 
-            {depositInvoice?.receivedAt && !depositInvoice.receipt && (
+            {/* Once an Invoice exists, that same received-but-unreceipted deposit
+                money is already tracked (and receiptable) through the
+                Invoice's own Issue Receipt button above - offering this one
+                too would let both be clicked for the same payment. */}
+            {depositInvoice?.receivedAt && !depositInvoice.receipt && !invoice && (
               <form action={issueReceiptForDepositInvoice} className="mt-4 border-t border-primary/20 pt-4">
                 <input type="hidden" name="depositInvoiceId" value={depositInvoice.id} />
                 <button type="submit" className="btn-secondary">

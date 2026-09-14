@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import type { BadgeTone } from "@/lib/statusTone";
-import { invoiceUncreditedAmount } from "@/lib/money";
+import { invoiceUncreditedAmount, invoiceReceiptedAmounts } from "@/lib/money";
 
 type PendingRow = {
   type: "Deposit Invoice" | "Invoice";
@@ -40,7 +40,17 @@ export default async function ReceiptsPage() {
       }),
       prisma.invoice.findMany({
         where: { issuedAt: { not: null }, status: { not: "VOIDED" } },
-        include: { client: true, receipts: true },
+        include: {
+          client: true,
+          receipts: true,
+          sourceDeliveryOrder: {
+            select: {
+              sourceQuotation: {
+                select: { depositInvoice: { select: { receipt: { select: { amount: true } } } } },
+              },
+            },
+          },
+        },
         orderBy: { depositReceivedAt: "asc" },
       }),
       prisma.receipt.findMany({
@@ -81,7 +91,13 @@ export default async function ReceiptsPage() {
     // even though the invoice itself still owes more.
     ...pendingInvoices
       .map((inv) => {
-        const amount = invoiceUncreditedAmount(inv.depositReceived, inv.receipts.map((r) => r.amount));
+        const amount = invoiceUncreditedAmount(
+          inv.depositReceived,
+          invoiceReceiptedAmounts(
+            inv.receipts,
+            inv.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
+          )
+        );
         // depositReceivedAt is the most meaningful "when did this money
         // actually show up" signal for a partially-paid, still-UNPAID
         // invoice (which has no paidAt yet); falls back to paidAt, then

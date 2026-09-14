@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { round2, invoiceBalanceDue, invoiceUncreditedAmount } from "@/lib/money";
+import { round2, invoiceBalanceDue, invoiceUncreditedAmount, invoiceReceiptedAmounts } from "@/lib/money";
 import { buildStages, statusLine, isActive } from "@/lib/documentStage";
 
 const PILL_TONE: Record<"discussing" | "progress" | "danger", string> = {
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     acceptedQuotationCount,
     acceptedQuotations,
     unpaidInvoices,
-    pendingDepositInvoiceReceiptCount,
+    pendingDepositInvoiceReceipts,
     pendingReceiptInvoices,
     activeProjectCandidates,
   ] = await Promise.all([
@@ -33,12 +33,22 @@ export default async function DashboardPage() {
       where: { status: "UNPAID" },
       include: { lineItems: true },
     }),
-    prisma.depositInvoice.count({
+    prisma.depositInvoice.findMany({
       where: { receivedAt: { not: null }, receipt: null },
+      select: { sourceQuotation: { select: { deliveryOrder: { select: { invoice: { select: { id: true } } } } } } },
     }),
     prisma.invoice.findMany({
       where: { issuedAt: { not: null }, status: { not: "VOIDED" } },
-      include: { receipts: true },
+      include: {
+        receipts: true,
+        sourceDeliveryOrder: {
+          select: {
+            sourceQuotation: {
+              select: { depositInvoice: { select: { receipt: { select: { amount: true } } } } },
+            },
+          },
+        },
+      },
     }),
     // A Project with no Quotation yet (still "Discussing") is always active -
     // only a Quotation reaching REJECTED/EXPIRED/VOIDED can kill a job, and
@@ -55,6 +65,7 @@ export default async function DashboardPage() {
         quotation: {
           include: {
             lineItems: true,
+            depositInvoice: { select: { receipt: { select: { amount: true } } } },
             deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
           },
         },
@@ -101,7 +112,10 @@ export default async function DashboardPage() {
                 latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
                 remaining: invoiceUncreditedAmount(
                   q.deliveryOrder.invoice.depositReceived,
-                  q.deliveryOrder.invoice.receipts.map((r) => r.amount)
+                  invoiceReceiptedAmounts(
+                    q.deliveryOrder.invoice.receipts,
+                    q.depositInvoice?.receipt?.amount
+                  )
                 ),
               }
             : null,
@@ -145,7 +159,22 @@ export default async function DashboardPage() {
   // fully receipted for everything paid so far while still owing more, or
   // still UNPAID with a partial payment that's already been receipted.
   const pendingInvoiceReceiptCount = pendingReceiptInvoices.filter(
-    (inv) => invoiceUncreditedAmount(inv.depositReceived, inv.receipts.map((r) => r.amount)) > 0
+    (inv) =>
+      invoiceUncreditedAmount(
+        inv.depositReceived,
+        invoiceReceiptedAmounts(
+          inv.receipts,
+          inv.sourceDeliveryOrder?.sourceQuotation?.depositInvoice?.receipt?.amount
+        )
+      ) > 0
+  ).length;
+
+  // Excludes a deposit invoice whose money has already been carried into an
+  // Invoice - that pending action is now counted via pendingInvoiceReceiptCount
+  // instead (the Invoice's own Issue Receipt), not this one, since only one of
+  // the two buttons is ever offered for the same payment (see the Project hub).
+  const pendingDepositInvoiceReceiptCount = pendingDepositInvoiceReceipts.filter(
+    (di) => di.sourceQuotation?.deliveryOrder?.invoice == null
   ).length;
 
   const pendingReceiptCount =

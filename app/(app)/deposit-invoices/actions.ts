@@ -112,7 +112,15 @@ export async function setDepositInvoiceReceived(formData: FormData) {
 
   const depositInvoice = await prisma.depositInvoice.findUnique({
     where: { id },
-    select: { sourceQuotation: { select: { projectId: true } } },
+    select: {
+      amount: true,
+      sourceQuotation: {
+        select: {
+          projectId: true,
+          deliveryOrder: { select: { invoice: { select: { id: true, depositReceived: true } } } },
+        },
+      },
+    },
   });
   if (!depositInvoice) {
     throw new Error("Deposit invoice not found");
@@ -128,9 +136,26 @@ export async function setDepositInvoiceReceived(formData: FormData) {
     );
   }
 
-  await prisma.depositInvoice.update({
-    where: { id },
-    data: { receivedAt: new Date(parsed.data.receivedAt) },
+  const receivedAt = new Date(parsed.data.receivedAt);
+  const invoice = depositInvoice.sourceQuotation?.deliveryOrder?.invoice;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.depositInvoice.update({
+      where: { id },
+      data: { receivedAt },
+    });
+    // Mirrors convertDeliveryOrderToInvoice's carry-forward for the case
+    // where this deposit is marked received AFTER the DO->Invoice
+    // conversion already happened (the usual ordering carries it at
+    // conversion time instead, see that function). Never overwrites an
+    // already-set depositReceived - that's the user's own running total,
+    // which may already be ahead of this deposit's amount.
+    if (invoice && invoice.depositReceived == null) {
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: { depositReceived: depositInvoice.amount, depositReceivedAt: receivedAt },
+      });
+    }
   });
 
   revalidatePath(`/projects/${projectId}`);

@@ -4,7 +4,7 @@ import { QuotationStatus, Prisma } from "@/generated/prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { quotationTone } from "@/lib/statusTone";
 import { buildStages, statusLine } from "@/lib/documentStage";
-import { invoiceUncreditedAmount } from "@/lib/money";
+import { invoiceUncreditedAmount, invoiceReceiptedAmounts } from "@/lib/money";
 
 export default async function ProjectsPage({
   searchParams,
@@ -35,6 +35,7 @@ export default async function ProjectsPage({
         quotation: {
           include: {
             lineItems: true,
+            depositInvoice: { select: { receipt: { select: { amount: true } } } },
             deliveryOrder: { include: { invoice: { include: { receipts: true } } } },
           },
         },
@@ -164,7 +165,10 @@ export default async function ProjectsPage({
                                 latestIssuedAt: q.deliveryOrder.invoice.receipts.at(-1)?.issuedAt ?? null,
                                 remaining: invoiceUncreditedAmount(
                                   q.deliveryOrder.invoice.depositReceived,
-                                  q.deliveryOrder.invoice.receipts.map((r) => r.amount)
+                                  invoiceReceiptedAmounts(
+                                    q.deliveryOrder.invoice.receipts,
+                                    q.depositInvoice?.receipt?.amount
+                                  )
                                 ),
                               }
                             : null,
